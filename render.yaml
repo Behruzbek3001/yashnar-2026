@@ -31,4 +31,4 @@ databases:
   - name: yashnar-db
     plan: free
     region: singapore
-    postgresVersion: "16"
+    postgresMajorVersion: "16"
