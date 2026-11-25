@@ -1,0 +1,1488 @@
+BUILD YASHNAR FROM ZERO USING THE EXACT SPECIFICATION BELOW.
+
+PRODUCT TYPE:
+A functional, database-connected web application for citizens, waste-collection drivers, and administrators.
+
+The default experience is login → onboarding → role dashboard.
+Do not create a marketing homepage.
+
+Do not assume existing source code, repositories, database projects, or deployments.
+
+Use the numerical specifications below as implementation requirements. When a detail is unspecified, follow the same design tokens and component patterns.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. TECHNOLOGY AND SERVICE CONNECTIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Frontend:
+- Next.js App Router.
+- React.
+- TypeScript, strict mode.
+- Tailwind CSS.
+- shadcn/ui.
+- Lucide icons.
+- React Hook Form + Zod.
+- TanStack Query.
+- Recharts.
+
+Backend:
+- Next.js Route Handlers.
+- Supabase PostgreSQL.
+- Supabase Auth with @supabase/ssr.
+- Private Supabase Storage.
+- Private Supabase Realtime Broadcast.
+- PostgreSQL transactions and Row Level Security.
+
+Maps:
+- Leaflet + React Leaflet.
+- OpenStreetMap.
+- Browser Geolocation.
+
+Hosting:
+- Vercel.
+
+AI:
+- OpenAI API, server-side only.
+
+Ask me to authorize GitHub, Supabase, and Vercel when their connections are required.
+
+Use secure provider settings for secrets.
+Never ask me to paste passwords or private API keys into chat.
+
+Create .env.example with empty values.
+
+Continue coding while external configuration is pending.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. EXACT DESIGN TOKENS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Application name:
+YASHNAR
+
+Tagline:
+Toza mahalla — yashil kelajak!
+
+Language:
+Uzbek Latin.
+
+Timezone:
+Asia/Tashkent.
+
+Font:
+Inter, with Arial and sans-serif fallbacks.
+Load the font through next/font when supported.
+
+LIGHT THEME COLORS:
+
+Page background:       #F8FAFC
+Card background:       #FFFFFF
+Sidebar background:    #FFFFFF
+Primary text:          #0F172A
+Secondary text:        #64748B
+Muted text:            #64748B
+Border:                #E2E8F0
+
+Brand emerald:         #059669
+Primary button:        #047857
+Primary button hover:  #065F46
+Primary button text:   #FFFFFF
+
+Mint surface:          #D1FAE5
+Mint surface text:     #065F46
+
+Warning surface:       #FEF3C7
+Warning text:          #92400E
+
+Danger surface:        #FEE2E2
+Danger text:           #991B1B
+Danger button:         #B91C1C
+
+Information surface:   #DBEAFE
+Information text:      #1E40AF
+
+DARK THEME COLORS:
+
+Page background:       #0B1512
+Card background:       #13231D
+Sidebar background:    #0F1D17
+Primary text:          #F1F5F9
+Secondary text:        #A7B8AE
+Border:                #294237
+Accent:                #34D399
+Primary button:        #047857
+Primary button text:   #FFFFFF
+
+SPACING SCALE:
+
+Use only these spacing values unless a component specifies otherwise:
+4, 8, 12, 16, 20, 24, 32, 40, 48, 64 px.
+
+BORDER RADII:
+
+Inputs:                10px
+Buttons:               10px
+Small status badges:    6px
+Standard cards:        16px
+Large panels:          20px
+Dialogs:               20px
+Avatar:                50%
+Pill badges:           999px
+
+BORDERS:
+
+Standard border:
+1px solid #E2E8F0 in light mode.
+
+FOCUS INDICATOR:
+
+2px solid #059669
+3px outline offset.
+
+SHADOWS:
+
+Standard card:
+0 2px 8px rgba(15, 23, 42, 0.04)
+
+Dropdown/dialog:
+0 16px 48px rgba(15, 23, 42, 0.16)
+
+Do not apply heavy shadows to every element.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. TYPOGRAPHY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Desktop page title:
+30px / 38px line-height / 700 weight.
+
+Mobile page title:
+24px / 32px / 700.
+
+Section title:
+20px / 28px / 600.
+
+Card title:
+16px / 24px / 600.
+
+Body:
+14px / 22px / 400.
+
+Form label:
+13px / 20px / 500.
+
+Helper text:
+12px / 18px / 400.
+
+Sidebar label:
+14px / 20px / 500.
+
+Button label:
+14px / 20px / 600.
+
+Statistic value:
+30px / 36px / 700.
+
+Small uppercase category label:
+11px / 16px / 600.
+Letter spacing: 1px.
+
+Do not use text smaller than 11px for functional interface content.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. RESPONSIVE BREAKPOINTS AND APP SHELL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Use these exact breakpoints:
+
+Mobile:       0–767px
+Tablet:       768–1023px
+Small desktop:1024–1279px
+Desktop:      1280px and above
+
+DESKTOP ≥1280px:
+
+Sidebar:
+- Width: 248px.
+- Fixed to the left.
+- Height: 100dvh.
+- Background: sidebar token.
+- Right border: 1px.
+- Internal horizontal padding: 16px.
+
+Top header:
+- Height: 72px.
+- Left position: 248px.
+- Right position: 0.
+- Bottom border: 1px.
+- Horizontal padding: 32px.
+
+Main content:
+- Left margin: 248px.
+- Top offset: 72px.
+- Padding: 32px.
+- Maximum inner width: 1440px.
+- Center inner content within the available area.
+
+SMALL DESKTOP 1024–1279px:
+
+- Sidebar becomes an 80px icon rail.
+- Navigation icons: 22px.
+- Navigation hit area: 48 × 48px.
+- Show accessible tooltips on hover/focus.
+- Main content left margin: 80px.
+- Header left position: 80px.
+- Main padding: 24px.
+
+TABLET 768–1023px:
+
+- Hide fixed sidebar.
+- Header height: 64px.
+- Add a 44 × 44px menu button.
+- Open navigation in a 280px-wide drawer.
+- Main padding: 24px.
+- No horizontal page scrolling.
+
+MOBILE ≤767px:
+
+- Header height: 64px.
+- Main padding: 16px.
+- Bottom navigation height: 72px plus safe-area inset.
+- Main bottom padding: 96px plus safe-area inset.
+- Navigation drawer width: min(280px, 85vw).
+- Bottom navigation contains four destinations and a “Ko‘proq” control.
+- Each bottom-navigation target has at least a 44px touch area.
+- Icons: 22px.
+- Labels: 11px.
+
+Always test:
+375px, 430px, 768px, 1024px, 1440px.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. SIDEBAR AND HEADER DETAILS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SIDEBAR:
+
+Brand row:
+- Height: 72px.
+- Logo: 36 × 36px.
+- Logo/name gap: 10px.
+- YASHNAR wordmark: 22px, weight 800.
+- Brand color: #065F46.
+
+Navigation:
+- Item height: 44px.
+- Gap between items: 4px.
+- Horizontal item padding: 12px.
+- Icon: 20px.
+- Icon/text gap: 12px.
+- Radius: 10px.
+
+Inactive item:
+- Transparent background.
+- Text/icon: #64748B.
+
+Active item:
+- Background: #D1FAE5.
+- Text/icon: #065F46.
+- Font weight: 600.
+- A 3px emerald indicator on its left edge.
+
+Place logout at the bottom.
+
+HEADER:
+
+Left:
+- Page breadcrumb.
+- Mobile/tablet menu control where applicable.
+
+Right:
+- Region label.
+- Theme toggle.
+- Notification button.
+- User avatar.
+
+Header action targets:
+44 × 44px.
+
+Avatar:
+36 × 36px.
+Fallback: first letter of the user’s real name.
+
+Do not show a fake username or fake notification count.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. REUSABLE COMPONENT DIMENSIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PRIMARY BUTTON:
+- Height: 48px.
+- Padding: 0 20px.
+- Radius: 10px.
+- Background: #047857.
+- Text: white.
+- Icon: 18px.
+- Icon/text gap: 8px.
+
+SMALL BUTTON:
+- Height: 36px.
+- Padding: 0 12px.
+- Font: 12px / 18px / 600.
+- On mobile, maintain a 44px effective touch target.
+
+SECONDARY BUTTON:
+- Height: 48px.
+- White background.
+- 1px #E2E8F0 border.
+- Text: #0F172A.
+
+INPUT/SELECT:
+- Minimum height: 48px.
+- Padding: 12px 14px.
+- Radius: 10px.
+- Font: 14px.
+- Label gap: 8px.
+- Field-to-field gap: 20px.
+
+TEXTAREA:
+- Minimum height: 120px.
+- Padding: 14px.
+- Resizable vertically.
+- Display character count when a maximum applies.
+
+CHECKBOX/RADIO:
+- Visual size: 18px.
+- Label/control gap: 10px.
+- Effective touch target: at least 44px high.
+
+CARD:
+- Padding: 24px desktop.
+- Padding: 20px mobile.
+- Radius: 16px.
+- Border: 1px.
+- Background: card token.
+
+STATUS BADGE:
+- Minimum height: 24px.
+- Padding: 4px 8px.
+- Font: 11px / 16px / 600.
+- Radius: 6px.
+- Include text; do not communicate status through color alone.
+
+DIALOG:
+- Desktop width: min(480px, viewport width minus 48px).
+- Padding: 24px.
+- Radius: 20px.
+- Backdrop: rgba(15, 23, 42, 0.45).
+- Maximum height: 85dvh.
+- Scroll contents when necessary.
+- Trap keyboard focus and restore it when closed.
+
+TOAST:
+- Desktop width: 360px.
+- Mobile width: viewport minus 32px.
+- Padding: 16px.
+- Display success for 5 seconds.
+- Keep actionable errors visible until dismissed.
+
+TABLE:
+- Header height: 44px.
+- Row minimum height: 60px.
+- Cell horizontal padding: 16px.
+- Header font: 12px / 18px / 600.
+- Body font: 13px / 20px.
+- Convert suitable tables to stacked cards on mobile.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7. LOGIN AND REGISTRATION SCREENS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The / route must show authentication entry or redirect an authenticated user to their role dashboard.
+
+LOGIN DESKTOP:
+
+- Background: #F8FAFC.
+- Center the authentication container.
+- Container maximum width: 960px.
+- Minimum height: 640px.
+- Radius: 20px.
+- Border: 1px #E2E8F0.
+- Two columns: 40% left, 60% right.
+
+Left column:
+- Background: #064E3B.
+- Padding: 40px.
+- White YASHNAR logo.
+- Tagline text: 28px / 36px / 700.
+- Supporting sentence: 14px / 22px.
+- Use a simple leaf illustration.
+- No promotional statistics.
+
+Right column:
+- Background: white.
+- Padding: 48px.
+- Form maximum width: 384px.
+- Heading: “Hisobingizga kiring”.
+- Heading/subtitle gap: 12px.
+- Subtitle/form gap: 28px.
+
+GOOGLE BUTTON:
+
+Text:
+“Google bilan davom etish”
+
+- Width: 100%.
+- Height: 48px.
+- Background: white.
+- Border: 1px #CBD5E1.
+- Google icon: 20 × 20px.
+- Icon/text gap: 12px.
+- Must initiate actual Google OAuth.
+
+Divider:
+- Text: “yoki email orqali”.
+- Font: 12px.
+- Horizontal lines on both sides.
+- Vertical margin: 24px.
+
+Fields:
+- Email.
+- Password.
+
+Below password:
+- “Parolni unutdingizmi?”
+- Align right.
+- Font: 12px.
+- Color: #047857.
+
+Submit:
+“Kirish”
+
+Registration link:
+“Hisobingiz yo‘qmi? Ro‘yxatdan o‘tish”
+
+MOBILE LOGIN:
+
+- Hide left illustration column.
+- Outer padding: 16px.
+- Card width: 100%.
+- Card maximum width: 480px.
+- Inner padding: 24px.
+- Allow natural vertical scrolling.
+- Never use a fixed height that clips the form.
+
+REGISTRATION:
+
+Use the same component system.
+
+Fields:
+- Full name: 2–100 characters.
+- Email.
+- Password: 12–128 characters.
+- Password confirmation.
+- Phone: +998 followed by 9 digits.
+
+Google registration follows the same OAuth flow and then onboarding.
+
+Never expose a public driver/admin role selector.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+8. ONBOARDING SCREEN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- Maximum form width: 640px.
+- Centered card.
+- Desktop padding: 32px.
+- Mobile padding: 24px.
+
+Heading:
+“Mahallangizni tanlang”
+
+Fields, in order:
+1. Full name.
+2. Phone.
+3. Region.
+4. District.
+5. MFY.
+6. Public leaderboard name.
+7. Leaderboard visibility checkbox.
+
+Region:
+“Namangan viloyati”
+
+District and MFY:
+- Searchable controls.
+- Height: 48px.
+- Dropdown maximum height: 280px.
+- Option minimum height: 40px.
+
+No MFYs:
+“Hozircha MFY mavjud emas.”
+
+Add-MFY control:
+“Yangi MFY qo‘shish”
+
+New name:
+- 2–100 characters.
+- Save to PostgreSQL.
+- Normalize Unicode, spaces, case, punctuation and apostrophes.
+- Enforce district-scoped uniqueness.
+
+Pending entry badge:
+“Tasdiqlanmagan”
+Background: #FEF3C7.
+Text: #92400E.
+
+Submit:
+“Saqlash va davom etish”
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9. CITIZEN DASHBOARD LAYOUT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Route:
+/citizen
+
+Page heading:
+“Assalomu alaykum, [First Name]!”
+
+Subtitle:
+“Bugun mahallangiz uchun yana bir yaxshi ish qilamizmi?”
+
+Heading block bottom margin:
+24px.
+
+ACTION PANEL:
+
+- Background: linear-gradient(110deg, #064E3B, #059669).
+- Radius: 20px.
+- Padding: 32px desktop, 24px mobile.
+- Minimum height: 200px desktop.
+- Natural content height on mobile.
+- Text: white.
+
+Title:
+“Mahallangizni yanada toza qilaylik!”
+
+Title:
+28px / 36px desktop.
+24px / 32px mobile.
+
+Description:
+14px / 22px.
+Maximum width: 520px.
+
+Primary action:
+“Chiqindini suratga olish”
+White button with #065F46 text.
+
+Secondary action:
+“Haydovchini kuzatish”
+Transparent button with a 1px white border.
+
+Button gap:
+12px.
+
+STATS:
+
+Six cards:
+1. Mening XP.
+2. Eco Ballarim.
+3. Kundalik seriyam.
+4. Reytingdagi o‘rnim.
+5. Bajarilgan yig‘imlar.
+6. Kutilayotgan murojaatlar.
+
+Card minimum height:
+120px.
+
+Grid:
+- ≥1440px: 6 columns.
+- 1024–1439px: 3 columns.
+- <1024px: 2 columns.
+
+Gap:
+16px desktop.
+12px mobile.
+
+Icon container:
+36 × 36px.
+Background: #D1FAE5.
+Icon: 20px, #047857.
+
+Use actual database values.
+Show “—” when a metric is unavailable.
+Show zero only when the real result is zero.
+
+LOWER PANELS:
+
+At content widths ≥1000px:
+- Left column: 2fr.
+- Right column: 1fr.
+- Gap: 24px.
+
+Below that:
+- One column.
+
+Include:
+- Active pickup.
+- Recent requests.
+- Daily quests.
+- Daily eco fact.
+- District leaderboard preview.
+- Recent notifications.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+10. WASTE REPORT SCREEN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Route:
+/citizen/report
+
+Heading:
+“Chiqindi haqida xabar yuborish”
+
+Desktop ≥1024px:
+- Two equal columns.
+- Gap: 24px.
+- Left: camera/photo.
+- Right: report form.
+
+Below 1024px:
+- One column.
+- Photo first.
+
+CAMERA PANEL:
+
+- Aspect ratio: 4 / 3.
+- Background: #0F172A.
+- Radius: 16px.
+- Video object-fit: cover.
+- Actual getUserMedia feed.
+- Rear-facing camera preferred.
+
+Capture control:
+- Outer circle: 64 × 64px.
+- White 4px border.
+- Inner circle: 48 × 48px.
+- Positioned below or over the camera with sufficient contrast.
+
+Additional controls:
+- Switch camera: 44 × 44px.
+- Retake: 48px high.
+- File fallback: 48px high.
+
+Upload rules:
+- JPEG, PNG, WebP.
+- Maximum original file: 5 MiB.
+- Server decodes and validates the image.
+- Maximum output long edge: 1600px.
+- JPEG quality target: 82%.
+- Strip metadata.
+- Store in a private bucket.
+
+FORM:
+
+Waste category:
+- Plastik.
+- Qog‘oz.
+- Shisha.
+- Metall.
+- Organik.
+- Aralash maishiy chiqindi.
+- Boshqa.
+
+Estimated volume choices:
+0–30 L
+31–60 L
+61–120 L
+121–240 L
+240+ L
+
+Initial scheduling estimates:
+15, 45, 90, 180, 300 liters respectively.
+
+Store the original range.
+Make representative estimates administrator-configurable.
+Label these as user estimates.
+
+Description:
+Maximum 2000 characters.
+
+Address:
+Maximum 300 characters.
+
+Location button:
+“Joylashuvni qo‘shish”
+
+Submission button:
+“Chiqindi haqida xabar yuborish”
+
+Disable submission while uploading.
+
+On success:
+“Murojaatingiz muvaffaqiyatli yuborildi!”
+
+Show the actual request identifier and persisted status.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+11. REQUEST LIST AND STATUS TIMELINE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Route:
+/citizen/requests
+
+Filter controls:
+- Status.
+- Waste category.
+- Date range.
+
+Desktop:
+- Table with 60px minimum rows.
+- Photo thumbnail: 48 × 48px.
+- Thumbnail radius: 8px.
+
+Mobile:
+- One request per card.
+- Padding: 16px.
+- Gap: 12px.
+
+Status colors:
+
+Submitted:
+Background #F1F5F9, text #475569.
+
+Reviewing:
+Background #FEF3C7, text #92400E.
+
+Assigned / en route:
+Background #DBEAFE, text #1E40AF.
+
+Arrived:
+Background #EDE9FE, text #5B21B6.
+
+Completed:
+Background #D1FAE5, text #065F46.
+
+Cancelled:
+Background #FEE2E2, text #991B1B.
+
+Details must show a vertical timeline:
+
+- Node: 10px circle.
+- Connecting line: 2px.
+- Entry gap: 24px.
+- Label: 13px / 20px / 600.
+- Timestamp: 12px / 18px.
+
+Every timeline entry must come from a persisted status event.
+
+Allow cancellation only in eligible pre-collection states.
+
+Require a dispute reason of 10–2000 characters.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+12. PERSONAL QR SCREEN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Route:
+/citizen/qr
+
+Card:
+- Maximum width: 420px.
+- Centered.
+- Padding: 32px desktop, 24px mobile.
+- Radius: 20px.
+- Background: white.
+
+Header:
+- YASHNAR logo: 32 × 32px.
+- Label: “ECO ID”.
+
+Citizen name:
+20px / 28px / 700.
+
+District/MFY:
+13px / 20px.
+
+QR:
+- Size: 240 × 240px.
+- Pure white background.
+- Black modules.
+- At least four modules of quiet zone.
+- No decorative logo obscuring QR modules.
+
+Credential:
+- Cryptographically random opaque value.
+- At least 256 bits of entropy.
+- Store a cryptographic digest, not plaintext.
+- Expire after 10 minutes.
+- Rotation invalidates the previous credential.
+- Include explicit revocation support.
+
+Countdown:
+“Amal qilish muddati: mm:ss”
+
+Buttons:
+“QR kodni yangilash”
+“QR kodni bekor qilish”
+
+Instructions:
+“Chiqindi olib ketilganda QR kodingizni haydovchiga ko‘rsating.”
+
+Do not place personal data inside the QR payload.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+13. DRIVER DASHBOARD AND COLLECTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Routes:
+- /driver
+- /driver/mfys
+- /driver/map
+- /driver/trips
+- /driver/scan
+- /driver/history
+- /driver/profile
+
+Use the same shell and design tokens.
+
+Driver dashboard stats:
+- Bugungi yig‘imlar.
+- Kutilayotgan murojaatlar.
+- Faol reys.
+- Tasdiqlangan yig‘ilgan hajm.
+- Biriktirilgan MFYlar.
+
+MFY cards:
+- Minimum height: 220px.
+- Padding: 24px.
+- Grid: 3 desktop, 2 tablet, 1 mobile.
+- Gap: 20px.
+
+Workload bar:
+- Height: 8px.
+- Radius: 999px.
+- Track: #E2E8F0.
+- Below/equal 60%: #059669.
+- Above 60%: #D97706.
+
+Formula:
+estimated pending liters / configured threshold liters × 100.
+
+Use a positive threshold only.
+Keep the uncapped result in analytics.
+Cap the visual bar at 100%.
+
+Above 60% label:
+“Yig‘ish tavsiya etiladi”
+
+Start button:
+“Yo‘lga chiqish”
+
+Prevent more than one active trip per driver.
+
+QR SCANNER:
+
+- Real camera scanner.
+- Scan frame: 260 × 260px.
+- Frame border: 3px #34D399.
+- Background outside frame: black with 45% opacity.
+- Camera-switch target: 44 × 44px.
+
+After a valid scan:
+Show eligible pickups for the active trip.
+
+Confirmation form:
+- Citizen display name.
+- Selected pickup.
+- Waste category.
+- Original estimated volume.
+- Actual collected volume.
+
+Actual volume:
+Greater than 0 and no more than 100,000 liters.
+Reject null, non-finite, or invalid values server-side.
+
+Confirmation button:
+“Yig‘imni tasdiqlash”
+
+Scanning alone must not award rewards.
+
+The final confirmation must atomically persist:
+- Pickup completion.
+- Verified quantity.
+- Driver/scan record.
+- XP.
+- Coins.
+- Notification.
+
+Repeating the request must not duplicate awards.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+14. MAP AND GPS BEHAVIOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Map panel height:
+clamp(320px, calc(100svh - 300px), 620px).
+
+Map radius:
+16px.
+
+Driver marker:
+- 40 × 40px.
+- Emerald circular background.
+- White truck icon: 22px.
+
+Pickup marker:
+- 24px circle.
+- Background: #F59E0B.
+- White border: 3px.
+
+Selected marker:
+Add a 3px #0F172A outline.
+
+Driver information card:
+- Padding: 20px.
+- Avatar/icon: 44 × 44px.
+- Name: 16px / 24px / 600.
+- Supporting details: 12px / 18px.
+
+GPS update policy:
+- Send no more than once every 15 seconds.
+- Send after movement of at least 20 meters.
+- Send a stationary heartbeat at least every 60 seconds while tracking.
+- Record accuracy and server receipt timestamp.
+- Mark data stale after 120 seconds without updates.
+- Stop sharing when the trip ends.
+- Delete the current trip location at trip end.
+- Purge abandoned stale location records after 24 hours.
+
+Only show drivers authorized for the citizen’s active MFY service.
+
+If no authorized location exists:
+“Hozircha faol haydovchi joylashuvi mavjud emas.”
+
+If ETA is unavailable:
+“Yetib kelish vaqti aniqlanmoqda.”
+
+Do not animate invented vehicle movement.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+15. EXACT GAMIFICATION RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Initial administrator-configurable rules:
+
+Verified QR pickup:
+25 XP + 5 Eco Coins.
+
+Correct daily educational quiz:
+10 XP + 2 Eco Coins.
+
+Approved useful report:
+15 XP + 3 Eco Coins.
+
+Approved participation activity:
+10 XP + 2 Eco Coins.
+
+A report reward requires an explicit approval/validation event.
+Creating a report alone must not automatically grant unlimited rewards.
+
+Use unique event identifiers to prevent duplicate grants.
+
+LEVELS:
+
+100 levels.
+
+Initial threshold for level n:
+25 × (n - 1)² lifetime XP.
+
+Examples:
+Level 1: 0 XP.
+Level 2: 25 XP.
+Level 3: 100 XP.
+Level 10: 2025 XP.
+
+Calculate levels from the actual XP ledger.
+
+Level names:
+1–10: Eco Beginner.
+11–25: Eco Explorer.
+26–50: Eco Guardian.
+51–75: Eco Champion.
+76–100: Eco Legend.
+
+Daily reset:
+00:00 Asia/Tashkent.
+
+Streak:
+Count consecutive local dates with qualifying verified activity.
+Multiple events on one date count as one active day.
+A streak remains current when the last active date is today or yesterday.
+
+Initial streak bonuses:
+7 days: 20 XP + 5 coins.
+30 days: 100 XP + 20 coins.
+Award each milestone once per qualifying streak.
+
+All policies must be editable for future events without rewriting historical transactions.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+16. QUEST AND LEADERBOARD SCREENS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Quest grid:
+- Desktop: 2 columns.
+- Mobile: 1 column.
+- Gap: 20px.
+
+Quest card:
+- Minimum height: 220px.
+- Padding: 24px.
+- Icon container: 48 × 48px.
+- Title: 18px / 26px / 600.
+- Description: 14px / 22px.
+- Reward badge: 28px high.
+- Progress bar: 8px high.
+
+Quest templates:
+- Eco Bilim.
+- Toza Mahalla.
+- Saralash Ustasi.
+- Yashil Qadam.
+
+Quiz answer:
+- Minimum height: 48px.
+- Border: 1px.
+- Radius: 10px.
+- Gap between answers: 8px.
+
+Validate answers and completion on the server.
+Do not send correct-answer secrets to the browser before submission.
+
+LEADERBOARD:
+
+Filter tabs:
+Bugun / Haftalik / Oylik / Umumiy.
+
+Tab height:
+40px.
+
+Leaderboard row:
+64px minimum height.
+
+Rank column:
+40px wide.
+
+Avatar:
+36 × 36px.
+
+Name:
+14px / 22px / 600.
+
+XP:
+14px / 22px / 700.
+Right-aligned.
+
+Highlight current user:
+Background #ECFDF5.
+
+Show only opted-in public names.
+Scope the ranking to the selected eligible district.
+Use actual ledger totals.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+17. ECO MARKET AND WALLET
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Market grid:
+- ≥1280px: 3 columns.
+- 768–1279px: 2 columns.
+- <768px: 1 column.
+- Gap: 24px.
+
+Reward card:
+- Padding: 20px.
+- Radius: 16px.
+- Image aspect ratio: 4 / 3.
+- Image radius: 12px.
+- Image/title gap: 16px.
+- Title: 18px / 26px / 600.
+- Description: 13px / 20px.
+- Price: 20px / 28px / 700, #047857.
+- Stock label: 12px.
+- Full-width redemption button: 48px high.
+
+Button:
+“Eco Ballarga almashtirish”
+
+Before redemption:
+Display the actual cost, current balance, remaining balance, and fulfillment conditions in a confirmation dialog.
+
+Server transaction must:
+- Lock the wallet.
+- Read the real database price.
+- Check stock.
+- Reserve inventory.
+- Deduct coins.
+- Create one redemption for its idempotency key.
+
+Never accept a client-supplied price as authoritative.
+
+Wallet balance panel:
+- Minimum height: 160px.
+- Background: #064E3B.
+- Padding: 28px.
+- Balance: 40px / 48px / 700.
+- Text: white.
+
+History rows:
+64px minimum height.
+
+Positive values:
+#047857.
+
+Spent values:
+#0F172A.
+
+Refunds must restore coins and inventory exactly once.
+
+No simulated bank transfers.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+18. ADMIN APPLICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Routes:
+- /admin
+- /admin/analytics
+- /admin/map
+- /admin/mfys
+- /admin/drivers
+- /admin/citizens
+- /admin/reports
+- /admin/quests
+- /admin/eco-facts
+- /admin/rewards
+- /admin/redemptions
+- /admin/ai
+- /admin/audit
+- /admin/settings
+
+Admin page title:
+28px / 36px / 700.
+
+Filter toolbar:
+- Minimum height: 64px.
+- Padding: 12px 16px.
+- Border: 1px.
+- Radius: 12px.
+- Control gap: 12px.
+- Wrap on small screens.
+
+Charts:
+- Card padding: 24px.
+- Plot height: 280px desktop, 220px mobile.
+- Grid lines: #E2E8F0.
+- Primary series: #059669.
+- Secondary series: #2563EB.
+- Warning series: #D97706.
+- Tick labels: 11px.
+- Tooltip radius: 8px.
+- No chart values without a database source.
+
+Default analytics range:
+Last 7 days.
+
+Other options:
+Today, 30 days, 90 days, custom range.
+
+Table pagination:
+25 rows by default.
+Options: 25, 50, 100.
+Show the true total from a count query.
+
+Provide working management for:
+- Driver approval and suspension.
+- Driver assignments.
+- Citizen account status.
+- Districts.
+- MFY review/merge.
+- Workload thresholds.
+- Reports/disputes.
+- Quests and answers.
+- Eco facts.
+- Rewards and stock.
+- Fulfillment/refunds.
+- Reward policies.
+- Audit logs.
+
+Every privileged change must record actor, action, target and timestamp.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+19. ADMIN AI SCREEN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Route:
+/admin/ai
+
+Maximum conversation width:
+900px.
+
+Header icon:
+48 × 48px emerald-tinted container.
+
+Title:
+“YASHNAR AI”
+
+Subtitle:
+“Haqiqiy ma’lumotlarga asoslangan operatsion tahlil.”
+
+Suggested questions:
+- “Qaysi MFYga yig‘im kerak?”
+- “Oxirgi 7 kunda qancha chiqindi yig‘ildi?”
+- “Qaysi murojaatlar kechikmoqda?”
+
+Suggestion button:
+Minimum height 40px.
+Padding 10px 14px.
+Radius 10px.
+
+Message:
+- Maximum width: 85%.
+- Padding: 16px.
+- Radius: 16px.
+- Body: 14px / 24px.
+
+Input:
+- Minimum height: 96px.
+- Maximum question length: 1000 characters.
+
+Submit:
+“Tahlil qilish”
+
+Use server-side OpenAI calls.
+Use only controlled, administrator-authorized analytics functions.
+Do not allow arbitrary SQL.
+
+Each response must identify:
+- Time range.
+- Data freshness.
+- Supporting values.
+- Missing data.
+- Recommended action.
+
+Do not invent statistics or rank drivers from insufficient evidence.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+20. DATA, PERMISSIONS AND REALTIME
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create persistent tables for:
+
+Geography, profiles, drivers, assignments, reports, pickups,
+status events, trips, locations, QR credentials, scan events,
+reward rules, XP ledger, coin ledger, wallets, levels,
+quests, completions, submissions, achievements, rewards,
+redemptions, inventory events, notifications, push subscriptions,
+delivery records, eco facts, disputes, audit logs and settings.
+
+Use:
+- Foreign keys.
+- Check constraints.
+- Unique constraints.
+- Appropriate indexes.
+- RLS.
+- Explicit grants.
+- Transactional SQL functions.
+- Idempotency keys.
+
+Public signup can create only citizens.
+
+Citizens can access their own private records.
+Drivers can access only assigned operational data.
+Administrators require verified privileged access.
+
+No direct client writes to:
+- Roles.
+- Wallet balances.
+- XP awards.
+- Coin awards.
+- Collection completion.
+- Administrative approval.
+
+Use private realtime channels.
+
+Broadcast invalidation signals, then refetch authorized records.
+Never broadcast raw private addresses to broad channels.
+
+Notifications must persist before realtime delivery.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+21. GOOGLE AUTHENTICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Implement real Google sign-in through Supabase Auth.
+
+Flow:
+Google button
+→ Supabase OAuth
+→ Google consent
+→ Supabase callback
+→ application code exchange
+→ SSR session
+→ onboarding or correct role dashboard.
+
+Google callback:
+https://<PROJECT_REF>.supabase.co/auth/v1/callback
+
+Application callback:
+https://<APP_DOMAIN>/auth/callback
+
+Use the real project and deployed domain.
+
+Configure:
+- Google Web OAuth client.
+- Consent branding/audience.
+- Supabase Google provider.
+- Supabase Site URL.
+- Exact permitted application redirects.
+
+Keep the Google client secret in Supabase settings.
+
+If configuration is missing:
+Show a useful setup/unavailable state.
+Do not pretend authentication succeeded.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+22. VALIDATION AND FAILURE BEHAVIOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Show inline validation below the relevant field:
+- Font: 12px / 18px.
+- Color: #B91C1C.
+- Top margin: 4px.
+
+Submission errors:
+- Background: #FEE2E2.
+- Text: #991B1B.
+- Padding: 16px.
+- Radius: 10px.
+
+Loading:
+- Spinner: 18px.
+- Button label changes to a relevant Uzbek action.
+- Prevent duplicate submissions.
+- Preserve form data on recoverable errors.
+
+Empty state:
+- Icon: 40px.
+- Title: 16px / 24px / 600.
+- Description: 14px / 22px.
+- Maximum description width: 360px.
+- Vertical padding: 40px.
+- Include a relevant action only when it can work.
+
+Do not substitute fake data when an API fails.
+
+Use:
+- Zero for a confirmed empty count.
+- “—” for an unavailable metric.
+- Explicit errors for failed requests.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+23. PWA AND ACCESSIBILITY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create:
+- Manifest.
+- 192px and 512px icons.
+- Maskable icon.
+- Service worker.
+- Offline fallback.
+- Install instructions.
+
+Only cache suitable public assets.
+Do not cache private account responses in shared caches.
+Do not claim mutations work offline.
+
+Accessibility:
+- Keyboard navigation.
+- Visible focus.
+- Associated form labels.
+- Accessible icon-button names.
+- Focus-trapped dialogs.
+- Text labels alongside status colors.
+- Reduced-motion support.
+- Appropriate text contrast.
+
+Animation:
+- Standard duration: 160ms.
+- Dialog/drawer duration: 220ms.
+- Use opacity and transform.
+- No continuous decorative animations.
+- Disable nonessential motion for prefers-reduced-motion.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+24. ACCEPTANCE AND DELIVERY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Build and test the actual application.
+
+Required tests:
+- Authentication.
+- Google OAuth integration.
+- MFY normalization and duplicate prevention.
+- Cross-user MFY persistence.
+- Private report/photo access.
+- Driver assignment isolation.
+- Trip notifications.
+- GPS authorization.
+- QR expiry and replay prevention.
+- Exactly-once XP/coin awards.
+- Tashkent daily boundaries.
+- Marketplace stock and balance consistency.
+- Refund idempotency.
+- Admin authorization.
+- Mobile layouts.
+
+Run:
+- Lint.
+- TypeScript checking.
+- Unit tests.
+- UI tests.
+- Database integration tests.
+- Production build.
+- Browser end-to-end tests where supported.
+
+Core acceptance flow:
+
+Two independent citizens
+→ persistent MFY
+→ real photo report
+→ authorized driver trip
+→ notifications
+→ actual permitted GPS
+→ real QR scan
+→ explicit collection confirmation
+→ one XP/coin award
+→ updated citizen/admin/leaderboard data.
+
+Create:
+- README.md.
+- .env.example.
+- Database migrations.
+- Reference seed.
+- IMPLEMENTATION_STATUS.md.
+- Deployment instructions.
+- Test report.
+
+Deploy to Vercel when access and configuration are available.
+
+Never call the project complete merely because the screens render.
+
+Never claim Google login, push, GPS, AI, or deployment works until that integration has actually been configured and verified.
+
+START FROM ZERO AND IMPLEMENT THIS SPECIFICATION AS A FUNCTIONAL WEB APPLICATION.

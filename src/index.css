@@ -1,0 +1,105 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --bg-page: #F8FAFC;
+  --bg-card: #FFFFFF;
+  --bg-sidebar: #FFFFFF;
+  --text-primary: #0F172A;
+  --text-secondary: #64748B;
+  --border-default: #E2E8F0;
+  --brand-emerald: #059669;
+  --btn-primary: #047857;
+  --btn-primary-hover: #065F46;
+  --btn-primary-text: #FFFFFF;
+  --surface-mint: #D1FAE5;
+  --text-mint: #065F46;
+  --surface-warning: #FEF3C7;
+  --text-warning: #92400E;
+  --surface-danger: #FEE2E2;
+  --text-danger: #991B1B;
+  --btn-danger: #B91C1C;
+  --surface-info: #DBEAFE;
+  --text-info: #1E40AF;
+  --shadow-card: 0 2px 8px rgba(15, 23, 42, 0.04);
+  --shadow-dialog: 0 16px 48px rgba(15, 23, 42, 0.16);
+}
+
+.dark {
+  --bg-page: #0B1512;
+  --bg-card: #13231D;
+  --bg-sidebar: #0F1D17;
+  --text-primary: #F1F5F9;
+  --text-secondary: #A7B8AE;
+  --border-default: #294237;
+  --brand-emerald: #34D399;
+  --btn-primary: #047857;
+  --btn-primary-hover: #065F46;
+  --btn-primary-text: #FFFFFF;
+  --surface-mint: rgba(5, 150, 105, 0.22);
+  --text-mint: #34D399;
+  --surface-warning: rgba(217, 119, 6, 0.2);
+  --text-warning: #FCD34D;
+  --surface-danger: rgba(185, 28, 28, 0.22);
+  --text-danger: #FCA5A5;
+  --btn-danger: #B91C1C;
+  --surface-info: rgba(37, 99, 235, 0.22);
+  --text-info: #93C5FD;
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-dialog: 0 16px 48px rgba(0, 0, 0, 0.45);
+}
+
+html,
+body {
+  font-family: 'Inter', Arial, sans-serif;
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Visible accessible focus indicator per specification: 2px solid #059669, 3px offset */
+:focus-visible {
+  outline: 2px solid #059669;
+  outline-offset: 3px;
+}
+
+/* Tabular numerals for metrics & tables */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.card-surface {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
+}
+
+.dialog-surface {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 20px;
+  box-shadow: var(--shadow-dialog);
+}
+
+/* Custom Leaflet map container styling */
+.leaflet-container {
+  font-family: 'Inter', Arial, sans-serif;
+  border-radius: 16px;
+  z-index: 10;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

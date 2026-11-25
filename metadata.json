@@ -1,0 +1,11 @@
+{
+  "name": "YASHNAR_2026",
+  "description": "Toza mahalla — yashil kelajak! Fuqarolar, chiqindi yig‘ish haydovchilari va administratorlar uchun ekologiya va chiqindi boshqaruvi platformasi.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

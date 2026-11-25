@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="uz">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YASHNAR — Internet aloqasi yo‘q</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: Inter, Arial, sans-serif;
+        background: #F8FAFC;
+        color: #0F172A;
+        display: flex;
+        min-height: 100dvh;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+      .card {
+        max-width: 440px;
+        width: 100%;
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 20px;
+        padding: 32px;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        background: #D1FAE5;
+        color: #065F46;
+        font-weight: 800;
+        font-size: 24px;
+        margin-bottom: 16px;
+      }
+      h1 {
+        font-size: 22px;
+        line-height: 30px;
+        margin: 0 0 8px;
+      }
+      p {
+        font-size: 14px;
+        line-height: 22px;
+        color: #64748B;
+        margin: 0 0 24px;
+      }
+      button {
+        height: 48px;
+        padding: 0 20px;
+        border-radius: 10px;
+        border: none;
+        background: #047857;
+        color: #FFFFFF;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="badge">Y</div>
+      <h1>Internet aloqasi uzildi</h1>
+      <p>
+        YASHNAR tizimidagi amallar va murojaatlar server bilan sinxronlanishni talab qiladi.
+        Internetga qayta ulaning va sahifani yangilang.
+      </p>
+      <button onclick="window.location.reload()">Qayta urinish</button>
+    </div>
+  </body>
+</html>

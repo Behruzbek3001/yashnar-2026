@@ -1,0 +1,550 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar 0: Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // Phase 3: Reusable Hardened Global Primitives
+    // -------------------------------------------------------------------------
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isVerifiedOwner(userId) {
+      return isVerifiedUser() && request.auth.uid == userId;
+    }
+
+    function isBootstrappedAdmin() {
+      return isVerifiedUser()
+        && request.auth.token.email == 'behruzbeknabijonov75@gmail.com';
+    }
+
+    function isAdmin() {
+      return isBootstrappedAdmin()
+        || (isVerifiedUser() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+    }
+
+    function isValidEmail(val) {
+      return val is string
+        && val.size() >= 3
+        && val.size() <= 254
+        && val.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$');
+    }
+
+    // -------------------------------------------------------------------------
+    // Pillar 2: Validation Blueprints (isValid[Entity] helpers)
+    // -------------------------------------------------------------------------
+    function isValidAdminRecord(data, adminId) {
+      return data.keys().hasAll(['uid', 'email', 'createdAt'])
+        && data.keys().hasOnly(['uid', 'email', 'createdAt'])
+        && isValidId(data.uid)
+        && data.uid == adminId
+        && isValidEmail(data.email)
+        && data.createdAt is timestamp;
+    }
+
+    function isValidUserPublicProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'displayName', 'leaderboardVisible', 'updatedAt'])
+        && data.keys().hasOnly([
+          'uid',
+          'displayName',
+          'districtName',
+          'mfyName',
+          'leaderboardVisible',
+          'totalXp',
+          'currentLevel',
+          'updatedAt'
+        ])
+        && isValidId(data.uid)
+        && data.uid == userId
+        && data.displayName is string
+        && data.displayName.size() >= 1
+        && data.displayName.size() <= 100
+        && (!('districtName' in data) || (data.districtName is string && data.districtName.size() <= 120))
+        && (!('mfyName' in data) || (data.mfyName is string && data.mfyName.size() <= 120))
+        && data.leaderboardVisible is bool
+        && (!('totalXp' in data) || (data.totalXp is int && data.totalXp >= 0 && data.totalXp <= 10000000))
+        && (!('currentLevel' in data) || (data.currentLevel is int && data.currentLevel >= 1 && data.currentLevel <= 100))
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidUserPrivateProfile(data, userId) {
+      return data.keys().hasAll([
+          'uid',
+          'email',
+          'fullName',
+          'themePreference',
+          'onboardingCompleted',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid',
+          'email',
+          'phone',
+          'fullName',
+          'themePreference',
+          'onboardingCompleted',
+          'createdAt',
+          'updatedAt'
+        ])
+        && isValidId(data.uid)
+        && data.uid == userId
+        && isValidEmail(data.email)
+        && (!('phone' in data) || (data.phone is string && data.phone.size() <= 32))
+        && data.fullName is string
+        && data.fullName.size() >= 1
+        && data.fullName.size() <= 120
+        && data.themePreference is string
+        && data.themePreference.size() <= 16
+        && data.themePreference in ['light', 'dark']
+        && data.onboardingCompleted is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidNotification(data, userId, notificationId) {
+      return data.keys().hasAll(['id', 'ownerUid', 'title', 'body', 'isRead', 'createdAt'])
+        && data.keys().hasOnly(['id', 'ownerUid', 'title', 'body', 'isRead', 'createdAt'])
+        && isValidId(data.id)
+        && data.id == notificationId
+        && isValidId(data.ownerUid)
+        && data.ownerUid == userId
+        && data.title is string
+        && data.title.size() >= 1
+        && data.title.size() <= 160
+        && data.body is string
+        && data.body.size() >= 1
+        && data.body.size() <= 1000
+        && data.isRead is bool
+        && data.createdAt is timestamp;
+    }
+
+    function isValidMfy(data, mfyId) {
+      return data.keys().hasAll([
+          'id',
+          'districtName',
+          'name',
+          'status',
+          'workloadThresholdLiters',
+          'createdByUid',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id',
+          'districtName',
+          'name',
+          'status',
+          'workloadThresholdLiters',
+          'createdByUid',
+          'createdAt',
+          'updatedAt'
+        ])
+        && isValidId(data.id)
+        && data.id == mfyId
+        && data.districtName is string
+        && data.districtName.size() >= 1
+        && data.districtName.size() <= 120
+        && data.name is string
+        && data.name.size() >= 1
+        && data.name.size() <= 120
+        && data.status is string
+        && data.status.size() <= 24
+        && data.status in ['approved', 'pending', 'merged']
+        && data.workloadThresholdLiters is int
+        && data.workloadThresholdLiters >= 50
+        && data.workloadThresholdLiters <= 100000
+        && isValidId(data.createdByUid)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidWasteReport(data, reportId) {
+      return data.keys().hasAll([
+          'id',
+          'ownerUid',
+          'mfyId',
+          'category',
+          'estimatedLiters',
+          'description',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id',
+          'ownerUid',
+          'mfyId',
+          'category',
+          'estimatedLiters',
+          'description',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ])
+        && isValidId(data.id)
+        && data.id == reportId
+        && isValidId(data.ownerUid)
+        && isValidId(data.mfyId)
+        && data.category is string
+        && data.category.size() >= 1
+        && data.category.size() <= 64
+        && data.estimatedLiters is int
+        && data.estimatedLiters >= 1
+        && data.estimatedLiters <= 100000
+        && data.description is string
+        && data.description.size() <= 1000
+        && data.status is string
+        && data.status.size() <= 24
+        && data.status in ['submitted', 'reviewing', 'assigned', 'en_route', 'arrived', 'completed', 'cancelled']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidEcoFact(data, factId) {
+      return data.keys().hasAll(['id', 'title', 'content', 'category', 'isActive', 'createdAt'])
+        && data.keys().hasOnly(['id', 'title', 'content', 'category', 'isActive', 'createdAt'])
+        && isValidId(data.id)
+        && data.id == factId
+        && data.title is string
+        && data.title.size() >= 1
+        && data.title.size() <= 160
+        && data.content is string
+        && data.content.size() >= 1
+        && data.content.size() <= 1500
+        && data.category is string
+        && data.category.size() >= 1
+        && data.category.size() <= 64
+        && data.isActive is bool
+        && data.createdAt is timestamp;
+    }
+
+    function isValidMarketReward(data, rewardId) {
+      return data.keys().hasAll([
+          'id',
+          'title',
+          'description',
+          'coinCost',
+          'stockQuantity',
+          'isActive',
+          'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id',
+          'title',
+          'description',
+          'coinCost',
+          'stockQuantity',
+          'isActive',
+          'updatedAt'
+        ])
+        && isValidId(data.id)
+        && data.id == rewardId
+        && data.title is string
+        && data.title.size() >= 1
+        && data.title.size() <= 160
+        && data.description is string
+        && data.description.size() >= 1
+        && data.description.size() <= 1000
+        && data.coinCost is int
+        && data.coinCost >= 1
+        && data.coinCost <= 1000000
+        && data.stockQuantity is int
+        && data.stockQuantity >= 0
+        && data.stockQuantity <= 1000000
+        && data.isActive is bool
+        && data.updatedAt is timestamp;
+    }
+
+    // -------------------------------------------------------------------------
+    // Collection 1: /admins/{adminId}
+    // -------------------------------------------------------------------------
+    match /admins/{adminId} {
+      allow get: if isVerifiedUser() && isValidId(adminId) && (isOwner(adminId) || isAdmin());
+      allow list: if isBootstrappedAdmin();
+      allow create: if isVerifiedUser()
+        && isValidId(adminId)
+        && isValidAdminRecord(incoming(), adminId)
+        && incoming().createdAt == request.time
+        && isAdmin();
+      allow update: if isVerifiedUser()
+        && isValidId(adminId)
+        && isValidAdminRecord(incoming(), adminId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['email'])
+        && isAdmin();
+      allow delete: if isVerifiedUser() && isValidId(adminId) && isAdmin();
+    }
+
+    // -------------------------------------------------------------------------
+    // Collection 2: /users/{userId} (Split Collection Strategy for PII)
+    // -------------------------------------------------------------------------
+    match /users/{userId} {
+      allow read, write: if false;
+
+      // Public non-PII profile for leaderboard display
+      match /public/profile {
+        allow get: if isSignedIn() && isValidId(userId) && (existing().leaderboardVisible == true || isOwner(userId) || isAdmin());
+        allow list: if false;
+        allow create: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidUserPublicProfile(incoming(), userId)
+          && incoming().updatedAt == request.time
+          && (
+            (isVerifiedOwner(userId) && !('totalXp' in incoming()) && !('currentLevel' in incoming()))
+            || isAdmin()
+          );
+        allow update: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidUserPublicProfile(incoming(), userId)
+          && incoming().uid == existing().uid
+          && incoming().updatedAt == request.time
+          && (
+            isAdmin()
+            || (
+              isVerifiedOwner(userId)
+              && incoming().diff(existing()).affectedKeys().hasOnly([
+                'displayName',
+                'districtName',
+                'mfyName',
+                'leaderboardVisible',
+                'updatedAt'
+              ])
+            )
+          );
+        allow delete: if isVerifiedUser() && isValidId(userId) && isAdmin();
+      }
+
+      // Strictly private PII document (email, phone, fullName)
+      match /private/info {
+        allow get: if isSignedIn() && isValidId(userId) && (isOwner(userId) || isAdmin());
+        allow list: if false;
+        allow create: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidUserPrivateProfile(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && (
+            (isVerifiedOwner(userId) && incoming().email == request.auth.token.email)
+            || isAdmin()
+          );
+        allow update: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidUserPrivateProfile(incoming(), userId)
+          && incoming().uid == existing().uid
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && (
+            isAdmin()
+            || (
+              isVerifiedOwner(userId)
+              && incoming().email == existing().email
+              && incoming().diff(existing()).affectedKeys().hasOnly([
+                'phone',
+                'fullName',
+                'themePreference',
+                'onboardingCompleted',
+                'updatedAt'
+              ])
+            )
+          );
+        allow delete: if isVerifiedUser() && isValidId(userId) && isAdmin();
+      }
+
+      // User-scoped notifications subcollection (Master Gate checks parent profile exists)
+      match /notifications/{notificationId} {
+        allow get: if isSignedIn() && isValidId(userId) && isValidId(notificationId) && (isOwner(userId) || isAdmin());
+        allow list: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
+        allow create: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidId(notificationId)
+          && isValidNotification(incoming(), userId, notificationId)
+          && incoming().createdAt == request.time
+          && isAdmin()
+          && exists(/databases/$(database)/documents/users/$(userId)/private/info);
+        allow update: if isVerifiedUser()
+          && isValidId(userId)
+          && isValidId(notificationId)
+          && isValidNotification(incoming(), userId, notificationId)
+          && incoming().id == existing().id
+          && incoming().ownerUid == existing().ownerUid
+          && incoming().createdAt == existing().createdAt
+          && (
+            isAdmin()
+            || (
+              isVerifiedOwner(userId)
+              && existing().isRead == false
+              && incoming().isRead == true
+              && incoming().diff(existing()).affectedKeys().hasOnly(['isRead'])
+            )
+          );
+        allow delete: if isVerifiedUser() && isValidId(userId) && isValidId(notificationId) && isAdmin();
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // Collection 3: /mfys/{mfyId}
+    // -------------------------------------------------------------------------
+    match /mfys/{mfyId} {
+      allow get: if isSignedIn()
+        && isValidId(mfyId)
+        && (existing().status == 'approved' || existing().createdByUid == request.auth.uid || isAdmin());
+      allow list: if isSignedIn()
+        && (resource.data.status == 'approved' || resource.data.createdByUid == request.auth.uid);
+      allow create: if isVerifiedUser()
+        && isValidId(mfyId)
+        && isValidMfy(incoming(), mfyId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin()
+          || (
+            incoming().createdByUid == request.auth.uid
+            && incoming().status == 'pending'
+            && incoming().workloadThresholdLiters == 500
+          )
+        );
+      allow update: if isVerifiedUser()
+        && isValidId(mfyId)
+        && isValidMfy(incoming(), mfyId)
+        && incoming().id == existing().id
+        && incoming().createdByUid == existing().createdByUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && isAdmin()
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'districtName',
+          'name',
+          'status',
+          'workloadThresholdLiters',
+          'updatedAt'
+        ]);
+      allow delete: if isVerifiedUser() && isValidId(mfyId) && isAdmin();
+    }
+
+    // -------------------------------------------------------------------------
+    // Collection 4: /wasteReports/{reportId}
+    // -------------------------------------------------------------------------
+    match /wasteReports/{reportId} {
+      allow get: if isSignedIn()
+        && isValidId(reportId)
+        && (existing().ownerUid == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create: if isVerifiedUser()
+        && isValidId(reportId)
+        && isValidWasteReport(incoming(), reportId)
+        && incoming().ownerUid == request.auth.uid
+        && incoming().status == 'submitted'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && exists(/databases/$(database)/documents/mfys/$(incoming().mfyId));
+      allow update: if isVerifiedUser()
+        && isValidId(reportId)
+        && isValidWasteReport(incoming(), reportId)
+        && incoming().id == existing().id
+        && incoming().ownerUid == existing().ownerUid
+        && incoming().mfyId == existing().mfyId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin()
+          || (
+            // Terminal State Lock: non-admin cannot edit completed or cancelled reports
+            existing().ownerUid == request.auth.uid
+            && !(existing().status in ['completed', 'cancelled'])
+            && (
+              // Action: Citizen updates report description while still submitted
+              (
+                existing().status == 'submitted'
+                && incoming().status == 'submitted'
+                && incoming().diff(existing()).affectedKeys().hasOnly(['description', 'updatedAt'])
+              )
+              ||
+              // Action: Citizen cancels an open submitted report
+              (
+                existing().status == 'submitted'
+                && incoming().status == 'cancelled'
+                && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+              )
+            )
+          )
+        );
+      allow delete: if isVerifiedUser() && isValidId(reportId) && isAdmin();
+    }
+
+    // -------------------------------------------------------------------------
+    // Collection 5: /ecoFacts/{factId}
+    // -------------------------------------------------------------------------
+    match /ecoFacts/{factId} {
+      allow get: if isSignedIn() && isValidId(factId) && (existing().isActive == true || isAdmin());
+      allow list: if isSignedIn() && resource.data.isActive == true;
+      allow create: if isVerifiedUser()
+        && isValidId(factId)
+        && isValidEcoFact(incoming(), factId)
+        && incoming().createdAt == request.time
+        && isAdmin();
+      allow update: if isVerifiedUser()
+        && isValidId(factId)
+        && isValidEcoFact(incoming(), factId)
+        && incoming().id == existing().id
+        && incoming().createdAt == existing().createdAt
+        && isAdmin()
+        && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'content', 'category', 'isActive']);
+      allow delete: if isVerifiedUser() && isValidId(factId) && isAdmin();
+    }
+
+    // -------------------------------------------------------------------------
+    // Collection 6: /marketRewards/{rewardId}
+    // -------------------------------------------------------------------------
+    match /marketRewards/{rewardId} {
+      allow get: if isSignedIn() && isValidId(rewardId) && (existing().isActive == true || isAdmin());
+      allow list: if isSignedIn() && resource.data.isActive == true;
+      allow create: if isVerifiedUser()
+        && isValidId(rewardId)
+        && isValidMarketReward(incoming(), rewardId)
+        && incoming().updatedAt == request.time
+        && isAdmin();
+      allow update: if isVerifiedUser()
+        && isValidId(rewardId)
+        && isValidMarketReward(incoming(), rewardId)
+        && incoming().id == existing().id
+        && incoming().updatedAt == request.time
+        && isAdmin()
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'title',
+          'description',
+          'coinCost',
+          'stockQuantity',
+          'isActive',
+          'updatedAt'
+        ]);
+      allow delete: if isVerifiedUser() && isValidId(rewardId) && isAdmin();
+    }
+  }
+}
