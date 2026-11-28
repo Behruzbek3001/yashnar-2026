@@ -102,6 +102,16 @@ export const WasteReportPage: React.FC = () => {
     return () => stopCamera();
   }, []);
 
+  // The <video> element only mounts once cameraActive is true, so attach the stream after it renders.
+  useEffect(() => {
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    if (cameraActive && video && stream && video.srcObject !== stream) {
+      video.srcObject = stream;
+      video.play().catch(() => {});
+    }
+  }, [cameraActive, photoDataUrl]);
+
   const captureFrame = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
