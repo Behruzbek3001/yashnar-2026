@@ -45,6 +45,7 @@ import {
 import { generateOpaqueToken, generatePublicReportCode, sha256Hex } from '../crypto.ts';
 import { requireAuth, type AuthRequest } from '../auth.ts';
 import { ensureSeeded } from '../seed.ts';
+import { analyzeTrashPhoto, insideNamangan, verdictRejection } from '../reportModeration.ts';
 import {
   awardXpAndCoinsTx,
   createNotificationTx,
@@ -403,7 +404,28 @@ citizenRouter.post('/citizen/reports', requireAuth, async (req: AuthRequest, res
     }
 
     if (typeof req.body?.photoDataUrl !== 'string' || !req.body.photoDataUrl.startsWith('data:image/')) {
-      return res.status(400).json({ error: 'Chiqindi fotosuratini yuklash yoki suratga olish majburiy.' });
+      return res.status(400).json({ error: 'Chiqindini kamera orqali suratga olish majburiy.' });
+    }
+
+    // GPS is mandatory, must be inside Namangan region and reasonably accurate.
+    const lat = parsed.data.latitude;
+    const lng = parsed.data.longitude;
+    const gpsAccuracy = Number(req.body?.gpsAccuracy);
+    if (typeof lat !== 'number' || typeof lng !== 'number') {
+      return res.status(400).json({ error: 'GPS joylashuv majburiy. Joylashuvga ruxsat bering.' });
+    }
+    if (!insideNamangan(lat, lng)) {
+      return res.status(400).json({ error: 'Joylashuv Namangan viloyatidan tashqarida. Chiqindi joyida turib yuboring.' });
+    }
+    if (!Number.isFinite(gpsAccuracy) || gpsAccuracy <= 0 || gpsAccuracy > 200) {
+      return res.status(400).json({ error: 'GPS aniqligi past (200 m dan ortiq). Ochiq joyda qayta urinib ko‘ring.' });
+    }
+
+    // AI check: is it real trash, and not a photo of a screen?
+    const verdict = await analyzeTrashPhoto(req.body.photoDataUrl);
+    const rejection = verdictRejection(verdict);
+    if (rejection) {
+      return res.status(422).json({ error: rejection });
     }
 
     let photoStorageKey: string;
@@ -439,6 +461,10 @@ citizenRouter.post('/citizen/reports', requireAuth, async (req: AuthRequest, res
         })
         .returning();
 
+      await tx.execute(
+        sql`UPDATE waste_reports SET moderation_status = 'pending', ai_verdict = ${verdict ? JSON.stringify(verdict) : null}, gps_accuracy = ${gpsAccuracy} WHERE id = ${report.id}`
+      );
+
       await tx.insert(reportStatusEvents).values({
         reportId: report.id,
         status: 'submitted',
@@ -459,18 +485,10 @@ citizenRouter.post('/citizen/reports', requireAuth, async (req: AuthRequest, res
           )
         );
 
-      for (const drv of assigned) {
-        await createNotificationTx(tx, {
-          userId: drv.userId,
-          type: 'new_report',
-          title: 'Yangi chiqindi murojaati',
-          body: `${parsed.data.category} (${parsed.data.estimatedRange}) bo‘yicha yangi murojaat kelib tushdi.`,
-          relatedEntityType: 'report',
-          relatedEntityId: String(report.id),
-        });
-      }
+      // Drivers are notified after an admin approves the report.
+      void assigned;
 
-      return { report, notifiedDriverUserIds: assigned.map((d) => d.userId) };
+      return { report, notifiedDriverUserIds: [] as number[] };
     });
 
     emitAfterCommit({

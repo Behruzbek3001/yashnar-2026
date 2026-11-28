@@ -10,6 +10,7 @@ import { driverRouter } from './src/server/routes/driver.ts';
 import { adminRouter } from './src/server/routes/admin.ts';
 import { pushRouter } from './src/server/push.ts';
 import { phoneVerifyRouter } from './src/server/phoneVerify.ts';
+import { reportModerationRouter } from './src/server/reportModeration.ts';
 import { attachRealtimeServer } from './src/server/realtime.ts';
 
 async function startServer() {
@@ -35,6 +36,7 @@ async function startServer() {
   app.use('/api', adminRouter);
   app.use('/api', pushRouter);
   app.use('/api', phoneVerifyRouter);
+  app.use('/api', reportModerationRouter);
 
   // API 404 fallback
   app.use('/api', (_req, res) => {

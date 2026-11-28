@@ -733,6 +733,12 @@ adminRouter.get('/admin/reports', async (req, res) => {
     const rows = await db
       .select({
         id: wasteReports.id,
+        moderationStatus: sql<string>`waste_reports.moderation_status`,
+        aiVerdict: sql<string | null>`waste_reports.ai_verdict`,
+        gpsAccuracy: sql<number | null>`waste_reports.gps_accuracy`,
+        latitude: wasteReports.latitude,
+        longitude: wasteReports.longitude,
+        description: wasteReports.description,
         publicCode: wasteReports.publicCode,
         category: wasteReports.category,
         estimatedRange: wasteReports.estimatedRange,

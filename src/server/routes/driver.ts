@@ -286,7 +286,8 @@ driverRouter.post('/driver/trips/start', async (req: AuthRequest, res) => {
         .where(
           and(
             eq(wasteReports.mfyId, mfyId),
-            inArray(wasteReports.status, ['submitted', 'reviewing', 'assigned'])
+            inArray(wasteReports.status, ['submitted', 'reviewing', 'assigned']),
+            sql`waste_reports.moderation_status = 'approved'`
           )
         );
 
@@ -523,8 +524,12 @@ driverRouter.get('/driver/reports', async (req: AuthRequest, res) => {
       .innerJoin(users, eq(wasteReports.citizenId, users.id))
       .where(
         all
-          ? inArray(wasteReports.mfyId, mfyIds)
-          : and(inArray(wasteReports.mfyId, mfyIds), inArray(wasteReports.status, ACTIVE_REPORT_STATUSES))
+          ? and(inArray(wasteReports.mfyId, mfyIds), sql`waste_reports.moderation_status = 'approved'`)
+          : and(
+              inArray(wasteReports.mfyId, mfyIds),
+              inArray(wasteReports.status, ACTIVE_REPORT_STATUSES),
+              sql`waste_reports.moderation_status = 'approved'`
+            )
       )
       .orderBy(desc(wasteReports.createdAt))
       .limit(200);
@@ -614,7 +619,8 @@ driverRouter.get('/driver/map', async (req: AuthRequest, res) => {
             .where(
               and(
                 inArray(wasteReports.mfyId, assignedMfyIds),
-                inArray(wasteReports.status, ['submitted', 'reviewing', 'assigned', 'en_route', 'arrived'])
+                inArray(wasteReports.status, ['submitted', 'reviewing', 'assigned', 'en_route', 'arrived']),
+                sql`waste_reports.moderation_status = 'approved'`
               )
             )
             .orderBy(desc(wasteReports.createdAt))

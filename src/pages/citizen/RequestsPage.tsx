@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ClipboardList, Eye, AlertTriangle, XCircle } from 'lucide-react';
 import { apiRequest, formatTashkentDateTime } from '../../lib/api';
+import { ReportComments } from '../../components/reports/ReportComments';
 import {
   CANCELLABLE_REPORT_STATUSES,
   REPORT_STATUSES,
@@ -359,6 +360,9 @@ export const RequestsPage: React.FC = () => {
                   </li>
                 ))}
               </ol>
+              <div className="pt-[12px] border-t border-[var(--border-default)] mt-[12px]">
+                <ReportComments reportId={selectedId!} />
+              </div>
             </div>
 
             {/* Cancel eligible pre-collection request */}

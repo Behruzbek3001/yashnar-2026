@@ -409,8 +409,8 @@ export const createReportSchema = z.object({
     .trim()
     .min(3, 'Manzilni kiriting (kamida 3 ta belgi).')
     .max(300, 'Manzil 300 ta belgidan oshmasligi kerak.'),
-  latitude: z.number().min(-90).max(90).nullable().optional(),
-  longitude: z.number().min(-180).max(180).nullable().optional(),
+  latitude: z.number({ message: 'GPS joylashuv majburiy.' }).min(-90).max(90),
+  longitude: z.number({ message: 'GPS joylashuv majburiy.' }).min(-180).max(180),
 });
 
 export const disputeSchema = z.object({

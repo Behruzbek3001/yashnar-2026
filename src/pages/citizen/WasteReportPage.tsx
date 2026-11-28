@@ -4,7 +4,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Camera,
   RefreshCw,
-  Upload,
   MapPin,
   CheckCircle2,
   RotateCcw,
@@ -36,12 +35,12 @@ export const WasteReportPage: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
+  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
 
   // Form state
   const [category, setCategory] = useState<string>(WASTE_CATEGORIES[0]);
@@ -78,7 +77,7 @@ export const WasteReportPage: React.FC = () => {
     setCameraError(null);
     stopCamera();
     if (!navigator.mediaDevices?.getUserMedia) {
-      setCameraError('Brauzeringiz kamerani qo‘llab-quvvatlamaydi. Fayl yuklashdan foydalaning.');
+      setCameraError('Brauzeringiz kamerani qo‘llab-quvvatlamaydi. Boshqa brauzerda (Chrome/Safari) oching.');
       return;
     }
     try {
@@ -94,7 +93,7 @@ export const WasteReportPage: React.FC = () => {
       setCameraActive(true);
     } catch {
       setCameraError(
-        'Kameraga ruxsat berilmadi yoki kamera topilmadi. Pastdagi “Fayldan yuklash” tugmasidan foydalanishingiz mumkin.'
+        'Kameraga ruxsat berilmadi yoki kamera topilmadi. Brauzer sozlamalaridan kameraga ruxsat bering.'
       );
     }
   };
@@ -115,30 +114,7 @@ export const WasteReportPage: React.FC = () => {
     const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
     setPhotoDataUrl(dataUrl);
     stopCamera();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setSubmitError(null);
-
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      setSubmitError('Faqat JPEG, PNG yoki WebP formatidagi rasmlar qabul qilinadi.');
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setSubmitError('Rasm hajmi 5 MiB dan oshmasligi kerak.');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setPhotoDataUrl(reader.result);
-        stopCamera();
-      }
-    };
-    reader.readAsDataURL(file);
+    handleAddLocation(); // location is taken at the moment of the photo
   };
 
   const handleAddLocation = () => {
@@ -151,14 +127,15 @@ export const WasteReportPage: React.FC = () => {
       (pos) => {
         setLatitude(pos.coords.latitude);
         setLongitude(pos.coords.longitude);
+        setGpsAccuracy(pos.coords.accuracy);
         setGeoLoading(false);
-        toastSuccess('GPS joylashuv muvaffaqiyatli qo‘shildi.');
+        toastSuccess(`GPS joylashuv aniqlandi (±${Math.round(pos.coords.accuracy)} m).`);
       },
       () => {
         setGeoLoading(false);
         setSubmitError('Joylashuvni aniqlab bo‘lmadi. Brauzer ruxsatini tekshiring.');
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
   };
 
@@ -168,7 +145,11 @@ export const WasteReportPage: React.FC = () => {
     setFieldErrors({});
 
     if (!photoDataUrl) {
-      setSubmitError('Iltimos, avval chiqindi fotosuratini oling yoki fayldan yuklang.');
+      setSubmitError('Iltimos, avval chiqindini kamera orqali suratga oling.');
+      return;
+    }
+    if (latitude === null || longitude === null || gpsAccuracy === null) {
+      setSubmitError('GPS joylashuv majburiy. “Joylashuvni aniqlash” tugmasini bosing va ruxsat bering.');
       return;
     }
 
@@ -200,6 +181,7 @@ export const WasteReportPage: React.FC = () => {
         method: 'POST',
         body: JSON.stringify({
           ...parsed.data,
+          gpsAccuracy,
           photoDataUrl,
         }),
       });
@@ -363,27 +345,10 @@ export const WasteReportPage: React.FC = () => {
               </Button>
             )}
 
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={handleFileChange}
-              className="hidden"
-              id="report-file-upload"
-            />
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex-1"
-            >
-              <Upload className="w-[18px] h-[18px] inline mr-[8px]" />
-              Fayldan yuklash
-            </Button>
           </div>
           <p className="text-[12px] leading-[18px] text-[#64748B] dark:text-[#A7B8AE]">
-            Formatlar: JPEG, PNG, WebP (maksimal 5 MiB). Rasm serverda tekshiriladi, EXIF
-            metama’lumotlari tozalanadi va yopiq saqlash joyiga yuklanadi.
+            Faqat kamera orqali, chiqindi joyida turib suratga oling. Galereyadan yuklash mumkin emas.
+            Rasm sun’iy intellekt orqali tekshiriladi: ekrandan qayta olingan yoki chiqindi bo‘lmagan rasmlar qabul qilinmaydi.
           </p>
         </Card>
 
@@ -468,8 +433,8 @@ export const WasteReportPage: React.FC = () => {
             <div className="flex flex-wrap items-center justify-between gap-[12px] p-[12px] rounded-[10px] bg-[#F8FAFC] dark:bg-[#0F1D17] border border-[var(--border-default)]">
               <div className="text-[12px] leading-[18px] text-[#64748B] dark:text-[#A7B8AE] tabular-nums">
                 {latitude !== null && longitude !== null
-                  ? `GPS: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}`
-                  : 'GPS koordinatalari qo‘shilmagan (ixtiyoriy)'}
+                  ? `GPS: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}${gpsAccuracy ? ` (±${Math.round(gpsAccuracy)} m)` : ''}`
+                  : 'GPS joylashuv majburiy — hali aniqlanmagan'}
               </div>
               <Button
                 type="button"
@@ -480,7 +445,7 @@ export const WasteReportPage: React.FC = () => {
                 onClick={handleAddLocation}
               >
                 <MapPin className="w-4 h-4 inline mr-[6px]" />
-                Joylashuvni qo‘shish
+                Joylashuvni aniqlash
               </Button>
             </div>
 

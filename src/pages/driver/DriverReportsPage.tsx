@@ -4,6 +4,7 @@ import { ClipboardList, Image as ImageIcon, MapPin, Phone } from 'lucide-react';
 import { apiRequest, formatTashkentDateTime, getSessionToken } from '../../lib/api';
 import { REPORT_STATUS_LABELS, type ReportStatus } from '../../lib/domain';
 import { Button, Card, EmptyState, ErrorAlert, StatusBadge } from '../../components/ui/Primitives';
+import { ReportComments } from '../../components/reports/ReportComments';
 
 interface DriverReport {
   id: number;
@@ -151,6 +152,12 @@ export const DriverReportsPage: React.FC = () => {
                 )}
                 {r.hasPhoto && <ReportPhoto id={r.id} />}
               </div>
+              <details className="pt-[4px]">
+                <summary className="cursor-pointer text-[13px] font-semibold text-[#047857] dark:text-[#34D399]">Izohlar</summary>
+                <div className="pt-[8px]">
+                  <ReportComments reportId={r.id} />
+                </div>
+              </details>
             </Card>
           ))}
         </div>

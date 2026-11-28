@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Building2, Check, CheckCircle2, FileWarning, GitMerge, Pencil, Truck, Users, X as XIcon } from 'lucide-react';
 import { apiRequest, formatTashkentDateTime } from '../../lib/api';
 import { PlateEditor } from '../../components/ui/PlateEditor';
+import { ReportComments, ReportPhotoView } from '../../components/reports/ReportComments';
 import {
   Button,
   Card,
@@ -722,7 +723,32 @@ interface AdminReport {
   createdAt: string;
   citizenName: string;
   mfyName: string;
+  moderationStatus: 'pending' | 'approved' | 'rejected';
+  aiVerdict: string | null;
+  gpsAccuracy: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  description: string | null;
 }
+
+const AiVerdictBadge: React.FC<{ raw: string | null }> = ({ raw }) => {
+  if (!raw) return <span className="text-[12px] text-[#64748B]">AI tekshiruvi: mavjud emas</span>;
+  let v: { isTrash?: boolean; isScreenPhoto?: boolean; confidence?: number; reason?: string } = {};
+  try {
+    v = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  const ok = v.isTrash && !v.isScreenPhoto;
+  return (
+    <div className={`text-[13px] rounded-[10px] px-[10px] py-[6px] ${ok ? 'bg-[#ECFDF5] text-[#065F46]' : 'bg-[#FEF3C7] text-[#92400E]'}`}>
+      <b>AI:</b> {v.isTrash ? 'chiqindi ✓' : 'chiqindi emas ✗'} · {v.isScreenPhoto ? 'ekrandan olingan ⚠' : 'haqiqiy surat ✓'} · ishonch{' '}
+      {Math.round((v.confidence ?? 0) * 100)}%{v.reason ? ` — ${v.reason}` : ''}
+    </div>
+  );
+};
+
+const MODERATION_LABEL = { pending: 'Tekshiruv kutilmoqda', approved: 'Tasdiqlangan', rejected: 'Rad etilgan' } as const;
 
 interface AdminDispute {
   id: number;
@@ -745,6 +771,17 @@ export const AdminReportsPage: React.FC = () => {
       apiRequest<{ reports: AdminReport[]; disputes: AdminDispute[]; total: number }>(
         '/api/admin/reports?page=1&pageSize=50'
       ),
+  });
+
+  const [openId, setOpenId] = useState<number | null>(null);
+  const moderateMutation = useMutation({
+    mutationFn: ({ id, decision, reason }: { id: number; decision: 'approve' | 'reject'; reason?: string }) =>
+      apiRequest(`/api/admin/reports/${id}/moderate`, { method: 'POST', body: JSON.stringify({ decision, reason }) }),
+    onSuccess: (_d, v) => {
+      toastSuccess(v.decision === 'approve' ? 'Murojaat tasdiqlandi va haydovchiga yuborildi.' : 'Murojaat rad etildi.');
+      queryClient.invalidateQueries({ queryKey: ['admin-reports'] });
+    },
+    onError: (err) => toastError(err instanceof Error ? err.message : 'Xatolik.'),
   });
 
   const approveRewardMutation = useMutation({
@@ -798,12 +835,14 @@ export const AdminReportsPage: React.FC = () => {
                   <th className="px-[16px]">MFY / Kategoriya</th>
                   <th className="px-[16px]">Hajm</th>
                   <th className="px-[16px]">Holat</th>
+                  <th className="px-[16px]">Tekshiruv</th>
                   <th className="px-[20px] text-right">Mukofot tasdig‘i</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border-default)] text-[14px]">
                 {data.reports.map((r) => (
-                  <tr key={r.id} className="min-h-[60px]">
+                  <React.Fragment key={r.id}>
+                  <tr className="min-h-[60px]">
                     <td className="px-[20px] py-[12px]">
                       <div className="font-semibold tabular-nums">{r.publicCode}</div>
                       <div className="text-[12px] text-[#64748B]">{r.citizenName}</div>
@@ -817,6 +856,38 @@ export const AdminReportsPage: React.FC = () => {
                     </td>
                     <td className="px-[16px] py-[12px]">
                       <StatusBadge status={r.status} />
+                    </td>
+                    <td className="px-[16px] py-[12px]">
+                      <div className="flex flex-col items-start gap-[6px]">
+                        <StatusBadge
+                          tone={r.moderationStatus === 'approved' ? 'mint' : r.moderationStatus === 'rejected' ? 'danger' : 'warning'}
+                          label={MODERATION_LABEL[r.moderationStatus] ?? r.moderationStatus}
+                        />
+                        {r.moderationStatus === 'pending' && !['completed', 'cancelled'].includes(r.status) && (
+                          <div className="flex gap-[6px]">
+                            <Button size="sm" onClick={() => moderateMutation.mutate({ id: r.id, decision: 'approve' })}>
+                              Tasdiqlash
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => {
+                                const reason = window.prompt('Rad etish sababini yozing:');
+                                if (reason && reason.trim().length >= 3) moderateMutation.mutate({ id: r.id, decision: 'reject', reason });
+                              }}
+                            >
+                              Rad etish
+                            </Button>
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setOpenId(openId === r.id ? null : r.id)}
+                          className="text-[12px] font-semibold text-[#047857] dark:text-[#34D399] underline cursor-pointer"
+                        >
+                          {openId === r.id ? 'Yopish' : 'Rasm, GPS va izohlar'}
+                        </button>
+                      </div>
                     </td>
                     <td className="px-[20px] py-[12px] text-right">
                       {r.approvedForReward ? (
@@ -835,6 +906,37 @@ export const AdminReportsPage: React.FC = () => {
                       )}
                     </td>
                   </tr>
+                  {openId === r.id && (
+                    <tr>
+                      <td colSpan={6} className="px-[20px] py-[16px] bg-[#F8FAFC] dark:bg-[#0F1D17]">
+                        <div className="grid gap-[16px] md:grid-cols-2">
+                          <div className="space-y-[8px]">
+                            <ReportPhotoView reportId={r.id} />
+                            <AiVerdictBadge raw={r.aiVerdict} />
+                            <div className="text-[13px] text-[#334155] dark:text-[#CBD5E1]">
+                              {r.address}
+                              {r.description ? ` — ${r.description}` : ''}
+                            </div>
+                            {r.latitude != null && r.longitude != null ? (
+                              <a
+                                href={`https://www.google.com/maps?q=${r.latitude},${r.longitude}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-[13px] font-semibold text-[#047857] underline"
+                              >
+                                GPS: {r.latitude.toFixed(5)}, {r.longitude.toFixed(5)}
+                                {r.gpsAccuracy ? ` (±${Math.round(r.gpsAccuracy)} m)` : ''} — xaritada ochish
+                              </a>
+                            ) : (
+                              <div className="text-[13px] text-[#B45309]">GPS joylashuv yo‘q</div>
+                            )}
+                          </div>
+                          <ReportComments reportId={r.id} />
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
