@@ -332,7 +332,70 @@ export const AdminMfysPage: React.FC = () => {
           </div>
         )}
       </Dialog>
+
+      <DistrictsManager />
     </div>
+  );
+};
+
+/** List of districts (tumanlar) with remove / restore. */
+const DistrictsManager: React.FC = () => {
+  const queryClient = useQueryClient();
+  const { toastSuccess, toastError } = useToast();
+  const { data } = useQuery({
+    queryKey: ['admin-districts'],
+    queryFn: () => apiRequest<{ districts: Array<{ id: number; name: string; isActive: boolean }> }>('/api/admin/districts'),
+  });
+  const act = useMutation({
+    mutationFn: ({ id, restore }: { id: number; restore: boolean }) =>
+      apiRequest(restore ? `/api/admin/districts/${id}/restore` : `/api/admin/districts/${id}`, {
+        method: restore ? 'POST' : 'DELETE',
+      }),
+    onSuccess: (_d, v) => {
+      toastSuccess(v.restore ? 'Tuman qayta tiklandi.' : 'Tuman o‘chirildi.');
+      queryClient.invalidateQueries({ queryKey: ['admin-districts'] });
+      queryClient.invalidateQueries({ queryKey: ['districts'] });
+    },
+    onError: (err) => toastError(err instanceof Error ? err.message : 'Xatolik.'),
+  });
+  const list = data?.districts ?? [];
+  const active = list.filter((d) => d.isActive);
+  const removed = list.filter((d) => !d.isActive);
+
+  return (
+    <Card className="p-0 md:p-0 overflow-hidden">
+      <div className="px-[20px] py-[16px] border-b border-[var(--border-default)]">
+        <h2 className="text-[18px] font-semibold">Tumanlar</h2>
+        <p className="text-[13px] text-[#64748B] dark:text-[#A7B8AE]">
+          O‘chirilgan tuman ro‘yxatlarda ko‘rinmaydi. Ichida MFY bor tumanni o‘chirib bo‘lmaydi.
+        </p>
+      </div>
+      <ul className="divide-y divide-[var(--border-default)]">
+        {active.map((d) => (
+          <li key={d.id} className="px-[20px] py-[10px] flex items-center justify-between gap-[12px] text-[14px]">
+            <span>{d.name}</span>
+            <Button
+              size="sm"
+              variant="secondary"
+              loading={act.isPending && act.variables?.id === d.id}
+              onClick={() => {
+                if (window.confirm(`“${d.name}” tumanini o‘chirasizmi?`)) act.mutate({ id: d.id, restore: false });
+              }}
+            >
+              O‘chirish
+            </Button>
+          </li>
+        ))}
+        {removed.map((d) => (
+          <li key={d.id} className="px-[20px] py-[10px] flex items-center justify-between gap-[12px] text-[14px] bg-[#F8FAFC] dark:bg-[#0F1D17]">
+            <span className="text-[#94A3B8] line-through">{d.name}</span>
+            <Button size="sm" variant="secondary" onClick={() => act.mutate({ id: d.id, restore: true })}>
+              Qayta tiklash
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </Card>
   );
 };
 

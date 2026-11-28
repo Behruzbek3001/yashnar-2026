@@ -239,6 +239,45 @@ adminRouter.get('/admin/districts', async (_req, res) => {
   return res.json({ districts: list });
 });
 
+/** Remove (hide) a district. Blocked while it still has MFYs, so no data is orphaned. */
+adminRouter.delete('/admin/districts/:id', async (req: AuthRequest, res) => {
+  try {
+    const id = Number(req.params.id);
+    const [d] = await db.select().from(districts).where(eq(districts.id, id)).limit(1);
+    if (!d) return res.status(404).json({ error: 'Tuman topilmadi.' });
+    const [m] = await db
+      .select({ c: sql<number>`count(*)::int` })
+      .from(mfys)
+      .where(and(eq(mfys.districtId, id), sql`${mfys.status} <> 'merged'`));
+    if ((m?.c ?? 0) > 0) {
+      return res.status(409).json({ error: `“${d.name}” tumanida ${m.c} ta MFY bor. Avval ularni boshqa tumanga birlashtiring yoki o‘chiring.` });
+    }
+    await db.transaction(async (tx) => {
+      await tx.update(districts).set({ isActive: false }).where(eq(districts.id, id));
+      await recordAuditLogTx(tx, {
+        actorUserId: req.currentUser!.id,
+        actorRole: 'admin',
+        action: 'district_removed',
+        targetType: 'district',
+        targetId: String(id),
+        metadata: { name: d.name },
+      });
+    });
+    emitAfterCommit({ keys: ['districts', 'admin-districts'], includeAdmins: true });
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Tumanni o‘chirishda xatolik.' });
+  }
+});
+
+adminRouter.post('/admin/districts/:id/restore', async (req: AuthRequest, res) => {
+  const id = Number(req.params.id);
+  await db.update(districts).set({ isActive: true }).where(eq(districts.id, id));
+  emitAfterCommit({ keys: ['districts', 'admin-districts'], includeAdmins: true });
+  return res.json({ ok: true });
+});
+
 adminRouter.post('/admin/districts', async (req: AuthRequest, res) => {
   try {
     const name = cleanDisplayName(String(req.body?.name ?? ''));
