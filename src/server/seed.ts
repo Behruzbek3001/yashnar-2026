@@ -51,6 +51,7 @@ export async function runReferenceSeed(): Promise<void> {
   await ensureModerationTables();
   const { ensureQrShortCodeTable } = await import('./qrShortCode.ts');
   await ensureQrShortCodeTable();
+  await db.execute(sql`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS vehicle_confirmed_at timestamptz`);
 
   // 1. Seed Namangan viloyati & its districts
   const [region] = await db

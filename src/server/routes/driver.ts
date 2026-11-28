@@ -47,11 +47,21 @@ function normalizePlate(raw: unknown): string | null {
 }
 const PLATE_ERROR = 'Avtomobil raqamini to‘g‘ri kiriting (masalan: 50 A 123 BC).';
 
+/** Whether the driver has entered their own vehicle number yet (required on first use). */
+driverRouter.get('/driver/vehicle', async (req: AuthRequest, res) => {
+  const r = (await db.execute(
+    sql`SELECT vehicle_plate, vehicle_confirmed_at FROM drivers WHERE id = ${req.currentUser!.driverId!}`
+  )) as unknown as { rows?: Array<{ vehicle_plate: string; vehicle_confirmed_at: string | null }> };
+  const row = (r.rows ?? (r as unknown as Array<{ vehicle_plate: string; vehicle_confirmed_at: string | null }>))[0];
+  return res.json({ vehiclePlate: row?.vehicle_plate ?? '', confirmed: Boolean(row?.vehicle_confirmed_at) });
+});
+
 driverRouter.patch('/driver/vehicle', async (req: AuthRequest, res) => {
   const plate = normalizePlate(req.body?.vehiclePlate);
   if (!plate) return res.status(400).json({ error: PLATE_ERROR });
   try {
     await db.update(drivers).set({ vehiclePlate: plate }).where(eq(drivers.id, req.currentUser!.driverId!));
+    await db.execute(sql`UPDATE drivers SET vehicle_confirmed_at = now() WHERE id = ${req.currentUser!.driverId!}`);
     emitAfterCommit({ keys: ['admin-drivers', 'driver-dashboard'], includeAdmins: true });
     return res.json({ vehiclePlate: plate });
   } catch (err) {
