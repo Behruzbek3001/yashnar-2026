@@ -463,6 +463,7 @@ adminRouter.get('/admin/drivers', async (_req, res) => {
       })
       .from(drivers)
       .innerJoin(users, eq(drivers.userId, users.id))
+      .where(sql`${users.role} <> 'admin'`)
       .orderBy(desc(drivers.createdAt));
 
     const assigns = await db

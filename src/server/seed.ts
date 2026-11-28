@@ -348,6 +348,15 @@ export async function runReferenceSeed(): Promise<void> {
     }
   }
 
+  // Admin accounts must not also be drivers: remove their driver records (keep if history references them).
+  try {
+    await db.execute(sql`DELETE FROM drivers d USING users u WHERE d.user_id = u.id AND u.role = 'admin'
+      AND NOT EXISTS (SELECT 1 FROM qr_scan_events q WHERE q.driver_id = d.id)
+      AND NOT EXISTS (SELECT 1 FROM waste_reports w WHERE w.assigned_driver_id = d.id)`);
+  } catch (err) {
+    console.warn('Admin driver records not removed:', (err as Error).message);
+  }
+
   // 10. Remove demo data (demo driver, demo admin, demo MFYs) once a real admin exists.
   await removeDemoData(namanganCity.id);
 }
