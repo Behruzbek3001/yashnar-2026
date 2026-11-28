@@ -11,6 +11,7 @@ export const PersonalQrPage: React.FC = () => {
 
   const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
   const [qrPayloadText, setQrPayloadText] = useState<string | null>(null);
+  const [shortCode, setShortCode] = useState<string | null>(null);
   const [expiresAtMs, setExpiresAtMs] = useState<number | null>(null);
   const [secondsLeft, setSecondsLeft] = useState<number>(0);
   const [revoked, setRevoked] = useState(false);
@@ -25,6 +26,7 @@ export const PersonalQrPage: React.FC = () => {
       const res = await apiRequest<{
         qrPayload: string;
         expiresAt: string;
+        shortCode?: string;
       }>('/api/citizen/qr/rotate', { method: 'POST', body: '{}' });
 
       // Pure white background, black modules, >= 4 modules quiet zone, no decorative logo obscuring modules
@@ -39,6 +41,7 @@ export const PersonalQrPage: React.FC = () => {
       });
       setQrImageUrl(dataUrl);
       setQrPayloadText(res.qrPayload);
+      setShortCode(res.shortCode ?? null);
       const exp = new Date(res.expiresAt).getTime();
       setExpiresAtMs(exp);
       setSecondsLeft(Math.max(0, Math.floor((exp - Date.now()) / 1000)));
@@ -56,6 +59,7 @@ export const PersonalQrPage: React.FC = () => {
       await apiRequest('/api/citizen/qr/revoke', { method: 'POST', body: '{}' });
       setQrImageUrl(null);
       setQrPayloadText(null);
+      setShortCode(null);
       setExpiresAtMs(null);
       setSecondsLeft(0);
       setRevoked(true);
@@ -129,6 +133,20 @@ export const PersonalQrPage: React.FC = () => {
                 : isExpired
                 ? 'QR kodning amal qilish muddati tugadi. Yangilang.'
                 : 'QR kod tayyorlanmoqda...'}
+            </div>
+          )}
+
+          {shortCode && !isExpired && !revoked && (
+            <div className="text-center">
+              <div className="text-[12px] text-[#64748B] dark:text-[#A7B8AE]">
+                Kamera ishlamasa, haydovchiga shu kodni ayting:
+              </div>
+              <div
+                data-testid="eco-id-short-code"
+                className="mt-[4px] text-[28px] font-bold tracking-[0.15em] tabular-nums text-[#065F46] dark:text-[#34D399] select-all"
+              >
+                {shortCode}
+              </div>
             </div>
           )}
 

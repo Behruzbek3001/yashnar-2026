@@ -258,15 +258,15 @@ export const DriverScanPage: React.FC = () => {
             className="space-y-[12px] pt-[8px] border-t border-[var(--border-default)]"
           >
             <FormField
-              label="Yoki QR kod tokenini qo‘lda kiriting"
+              label="Yoki fuqaroning 8 belgili kodini kiriting"
               htmlFor="manual-qr-token"
-              helper="Kamera ishlamagan taqdirda fuqaroning QR tokenini kiritib tekshiring."
+              helper="Kod fuqaroning «Eco ID QR» sahifasida QR ostida ko‘rsatiladi (10 daqiqa amal qiladi)."
             >
               <Input
                 id="manual-qr-token"
                 value={qrToken}
                 onChange={(e) => setQrToken(e.target.value)}
-                placeholder="QR tokenni kiriting..."
+                placeholder="Masalan: K7P4-9QXM"
               />
             </FormField>
             <Button

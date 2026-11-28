@@ -49,6 +49,8 @@ export async function runReferenceSeed(): Promise<void> {
   await ensurePhoneVerificationTables();
   const { ensureModerationTables } = await import('./reportModeration.ts');
   await ensureModerationTables();
+  const { ensureQrShortCodeTable } = await import('./qrShortCode.ts');
+  await ensureQrShortCodeTable();
 
   // 1. Seed Namangan viloyati & its districts
   const [region] = await db

@@ -22,6 +22,7 @@ import {
   shouldSendGpsUpdate,
 } from '../../lib/domain.ts';
 import { sha256Hex } from '../crypto.ts';
+import { resolveQrDigest } from '../qrShortCode.ts';
 import { requireRole, type AuthRequest } from '../auth.ts';
 import {
   awardXpAndCoinsTx,
@@ -645,7 +646,7 @@ driverRouter.post('/driver/scan/verify', async (req: AuthRequest, res) => {
   try {
     const driverId = req.currentUser!.driverId!;
     const qrToken = typeof req.body?.qrToken === 'string' ? req.body.qrToken.trim() : '';
-    if (!qrToken || qrToken.length < 16) {
+    if (!qrToken || qrToken.length < 8) {
       return res.status(400).json({ error: 'QR kod yaroqsiz.' });
     }
 
@@ -659,7 +660,7 @@ driverRouter.post('/driver/scan/verify', async (req: AuthRequest, res) => {
       return res.status(400).json({ error: 'QR skanerlash uchun avval MFY bo‘yicha faol reys boshlang.' });
     }
 
-    const digest = sha256Hex(qrToken);
+    const digest = await resolveQrDigest(qrToken);
     const [cred] = await db
       .select()
       .from(qrCredentials)
@@ -779,7 +780,7 @@ driverRouter.post('/driver/scan/confirm', async (req: AuthRequest, res) => {
         throw new Error('BAD_REQUEST:Faol reys topilmadi.');
       }
 
-      const digest = sha256Hex(qrToken);
+      const digest = await resolveQrDigest(qrToken);
       const [cred] = await tx
         .select()
         .from(qrCredentials)

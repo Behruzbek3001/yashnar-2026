@@ -428,7 +428,7 @@ export const actualVolumeSchema = z
   .refine((val) => val <= 100000, 'Haqiqiy hajm 100 000 litrdan oshmasligi kerak.');
 
 export const confirmPickupSchema = z.object({
-  qrToken: z.string().min(16, 'Yaroqsiz QR kod.'),
+  qrToken: z.string().min(8, 'Yaroqsiz QR kod.'),
   reportId: z.number().int().positive('Murojaatni tanlang.'),
   actualLiters: actualVolumeSchema,
   idempotencyKey: z.string().min(8).max(128),

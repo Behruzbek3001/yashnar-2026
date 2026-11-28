@@ -45,6 +45,7 @@ import {
 import { generateOpaqueToken, generatePublicReportCode, sha256Hex } from '../crypto.ts';
 import { requireAuth, type AuthRequest } from '../auth.ts';
 import { ensureSeeded } from '../seed.ts';
+import { createShortCode } from '../qrShortCode.ts';
 import { analyzeTrashPhoto, insideNamangan, verdictRejection } from '../reportModeration.ts';
 import {
   awardXpAndCoinsTx,
@@ -725,8 +726,10 @@ citizenRouter.post('/citizen/qr/rotate', requireAuth, async (req: AuthRequest, r
       });
     });
 
+    const shortCode = await createShortCode(digest);
     return res.json({
       qrPayload: opaqueToken,
+      shortCode,
       expiresAt: expiresAt.toISOString(),
       ttlSeconds: Math.floor(QR_TTL_MS / 1000),
     });
