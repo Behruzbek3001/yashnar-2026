@@ -328,6 +328,7 @@ adminRouter.get('/admin/mfys', async (_req, res) => {
       })
       .from(mfys)
       .innerJoin(districts, eq(mfys.districtId, districts.id))
+      .where(sql`${mfys.status} <> 'merged'`)
       .orderBy(desc(mfys.status), mfys.name);
 
     const pendingAggs = await db
