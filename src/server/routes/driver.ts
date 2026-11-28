@@ -613,6 +613,7 @@ driverRouter.get('/driver/map', async (req: AuthRequest, res) => {
               latitude: wasteReports.latitude,
               longitude: wasteReports.longitude,
               citizenName: users.fullName,
+              citizenPhone: users.phone,
             })
             .from(wasteReports)
             .innerJoin(mfys, eq(wasteReports.mfyId, mfys.id))

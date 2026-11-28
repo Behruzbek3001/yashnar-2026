@@ -31,6 +31,7 @@ export interface MapPickupPoint {
   address?: string;
   mfyName?: string;
   citizenName?: string;
+  citizenPhone?: string;
   latitude: number | null;
   longitude: number | null;
 }
@@ -246,6 +247,16 @@ export const YashnarMap: React.FC<{
                   </div>
                   <div>{p.category} · {p.estimatedRange || `${p.estimatedLiters ?? 0} L`}</div>
                   <div>Holat: {REPORT_STATUS_LABELS[p.status as ReportStatus] ?? p.status}</div>
+                  {p.citizenName && <div>Yuboruvchi: {p.citizenName}</div>}
+                  {p.citizenPhone && (
+                    <div>
+                      Tel:{' '}
+                      <a href={`tel:${p.citizenPhone}`} className="font-semibold text-[#047857] underline">
+                        {p.citizenPhone}
+                      </a>
+                    </div>
+                  )}
+                  {p.address && <div>{p.address}</div>}
                 </div>
               </Popup>
             </Marker>
