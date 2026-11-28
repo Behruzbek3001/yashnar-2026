@@ -82,6 +82,9 @@ const SimpleLeafIllustration: React.FC = () => (
   </svg>
 );
 
+// SMS login/sign-up is off: Firebase free plan allows only 10 SMS/day, reserved for daily phone checks.
+const SMS_LOGIN_ENABLED = false;
+
 export const AuthPage: React.FC<{ initialMode?: 'login' | 'register' }> = ({
   initialMode = 'login',
 }) => {
@@ -547,7 +550,7 @@ export const AuthPage: React.FC<{ initialMode?: 'login' | 'register' }> = ({
                   {mode === 'login' ? (
                     <div className="space-y-[20px]">
                       {/* Toggle between Password, Email Link Verification, and Phone SMS Verification */}
-                      <div className="grid grid-cols-3 gap-[6px] p-[4px] rounded-[10px] bg-[#F1F5F9] dark:bg-[#0F1D17] border border-[#E2E8F0] dark:border-[#294237]">
+                      <div className="grid grid-cols-2 gap-[6px] p-[4px] rounded-[10px] bg-[#F1F5F9] dark:bg-[#0F1D17] border border-[#E2E8F0] dark:border-[#294237]">
                         <button
                           type="button"
                           aria-pressed={loginMethod === 'password'}
@@ -579,7 +582,8 @@ export const AuthPage: React.FC<{ initialMode?: 'login' | 'register' }> = ({
                         >
                           Email
                         </button>
-                        <button
+                        {SMS_LOGIN_ENABLED && (
+<button
                           type="button"
                           aria-pressed={loginMethod === 'phone_sms'}
                           onClick={() => {
@@ -593,7 +597,7 @@ export const AuthPage: React.FC<{ initialMode?: 'login' | 'register' }> = ({
                           }`}
                         >
                           SMS kod
-                        </button>
+                        </button>)}
                       </div>
 
                       {loginMethod === 'password' ? (
@@ -797,7 +801,7 @@ export const AuthPage: React.FC<{ initialMode?: 'login' | 'register' }> = ({
                     </div>
                   ) : (
                     <div className="space-y-[20px]">
-                      <div className="grid grid-cols-2 gap-[6px] p-[4px] rounded-[10px] bg-[#F1F5F9] dark:bg-[#0F1D17] border border-[#E2E8F0] dark:border-[#294237]">
+                      <div className={`${SMS_LOGIN_ENABLED ? 'grid' : 'hidden'} grid-cols-2 gap-[6px] p-[4px] rounded-[10px] bg-[#F1F5F9] dark:bg-[#0F1D17] border border-[#E2E8F0] dark:border-[#294237]`}>
                         <button
                           type="button"
                           aria-pressed={registerMethod === 'email'}
@@ -813,7 +817,8 @@ export const AuthPage: React.FC<{ initialMode?: 'login' | 'register' }> = ({
                         >
                           Email orqali
                         </button>
-                        <button
+                        {SMS_LOGIN_ENABLED && (
+<button
                           type="button"
                           aria-pressed={registerMethod === 'phone_sms'}
                           onClick={() => {
@@ -827,7 +832,7 @@ export const AuthPage: React.FC<{ initialMode?: 'login' | 'register' }> = ({
                           }`}
                         >
                           Telefon (SMS) orqali
-                        </button>
+                        </button>)}
                       </div>
 
                       {registerMethod === 'phone_sms' ? (

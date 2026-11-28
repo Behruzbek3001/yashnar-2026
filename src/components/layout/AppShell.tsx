@@ -39,6 +39,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { apiRequest, formatTashkentDateTime } from '../../lib/api';
 import { pushSupported, syncPushSubscription } from '../../lib/push';
+import { PhoneVerificationBanner } from './PhoneVerificationBanner';
 import { cn, YashnarLogo } from '../ui/Primitives';
 import { PWAInstallButton, OfflineIndicator } from '../pwa/PWAControls';
 
@@ -495,6 +496,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
         <div
           className="mx-auto max-w-[1440px] px-[16px] pt-[16px] pb-[calc(96px+env(safe-area-inset-bottom))] md:p-[24px] xl:p-[32px]"
         >
+          <PhoneVerificationBanner />
           {children}
         </div>
       </main>

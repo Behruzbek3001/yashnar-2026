@@ -9,6 +9,7 @@ import { citizenRouter } from './src/server/routes/citizen.ts';
 import { driverRouter } from './src/server/routes/driver.ts';
 import { adminRouter } from './src/server/routes/admin.ts';
 import { pushRouter } from './src/server/push.ts';
+import { phoneVerifyRouter } from './src/server/phoneVerify.ts';
 import { attachRealtimeServer } from './src/server/realtime.ts';
 
 async function startServer() {
@@ -33,6 +34,7 @@ async function startServer() {
   app.use('/api', driverRouter);
   app.use('/api', adminRouter);
   app.use('/api', pushRouter);
+  app.use('/api', phoneVerifyRouter);
 
   // API 404 fallback
   app.use('/api', (_req, res) => {

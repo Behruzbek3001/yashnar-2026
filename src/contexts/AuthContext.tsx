@@ -86,6 +86,7 @@ interface AuthContextValue {
     code: string,
     profile?: { fullName?: string; districtId?: number }
   ) => Promise<UserProfile>;
+  confirmOwnPhoneCode: (code: string) => Promise<void>;
   resetPhoneSmsSession: () => void;
   sendPasswordReset: (email: string) => Promise<string>;
   loginWithGoogle: () => Promise<UserProfile>;
@@ -525,6 +526,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [resetPhoneSmsSession]
   );
 
+  /** Confirms the SMS code for the logged-in user's own phone (daily verification), without switching accounts. */
+  const confirmOwnPhoneCode = useCallback(
+    async (rawCode: string) => {
+      const cleanCode = rawCode.replace(/\D/g, '').trim();
+      if (cleanCode.length !== 6) throw new Error('6 xonali SMS kodni kiriting.');
+      if (!phoneConfirmationRef.current) throw new Error('SMS sessiyasi topilmadi.');
+      let idToken: string;
+      try {
+        const cred = await phoneConfirmationRef.current.confirm(cleanCode);
+        idToken = await cred.user.getIdToken(true);
+      } catch (err) {
+        throw new Error(mapFirebaseAuthError(err, 'SMS kod noto‘g‘ri. Qaytadan kiriting.'));
+      }
+      await apiRequest('/api/phone-verification/confirm', { method: 'POST', body: JSON.stringify({ idToken }) });
+      resetPhoneSmsSession();
+      if (auth) await firebaseSignOut(auth).catch(() => {});
+    },
+    [resetPhoneSmsSession]
+  );
+
   const sendPasswordReset = useCallback(async (email: string) => {
     const cleanEmail = email.trim();
     if (!cleanEmail || !cleanEmail.includes('@')) {
@@ -596,6 +617,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isEmailLoginLinkUrl,
         sendPhoneSmsCode,
         verifyPhoneSmsCode,
+        confirmOwnPhoneCode,
         resetPhoneSmsSession,
         sendPasswordReset,
         loginWithGoogle,

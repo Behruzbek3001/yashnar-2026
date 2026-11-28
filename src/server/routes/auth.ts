@@ -1,3 +1,4 @@
+import { phoneOwner, phoneLocked, PHONE_TAKEN_ERROR, PHONE_LOCKED_ERROR } from '../phoneVerify.ts';
 import { Router } from 'express';
 import crypto from 'crypto';
 import { eq, and, sql } from 'drizzle-orm';
@@ -153,6 +154,10 @@ authRouter.post('/register', async (req, res) => {
       return res.status(409).json({ error: 'Ushbu elektron pochta allaqachon ro‘yxatdan o‘tgan.' });
     }
 
+    if (await phoneOwner(parsed.data.phone)) {
+      return res.status(409).json({ error: PHONE_TAKEN_ERROR });
+    }
+
     const passwordHash = await hashPassword(parsed.data.password);
     const uid = `local:${crypto.randomUUID()}`;
 
@@ -224,6 +229,13 @@ authRouter.post('/firebase-register', async (req, res) => {
       .limit(1);
     if (!dist) {
       return res.status(400).json({ error: 'Tanlangan tuman topilmadi.' });
+    }
+
+    {
+      const owner = await phoneOwner(parsed.data.phone);
+      if (owner && owner.uid !== decoded.uid && owner.email !== email) {
+        return res.status(409).json({ error: PHONE_TAKEN_ERROR });
+      }
     }
 
     let [u] = await db.select().from(users).where(eq(users.uid, decoded.uid)).limit(1);
@@ -630,6 +642,17 @@ authRouter.post('/onboarding', requireAuth, async (req: AuthRequest, res) => {
 
     const effectiveMfyId = mfyRow.status === 'merged' && mfyRow.mergedIntoId ? mfyRow.mergedIntoId : mfyRow.id;
 
+    {
+      const owner = await phoneOwner(parsed.data.phone);
+      if (owner && owner.id !== req.currentUser!.id) {
+        return res.status(409).json({ error: PHONE_TAKEN_ERROR });
+      }
+      const changed = (req.currentUser!.phone || '').replace(/\D/g, '') !== parsed.data.phone.replace(/\D/g, '');
+      if (req.currentUser!.phone && changed && (await phoneLocked(req.currentUser!.id))) {
+        return res.status(409).json({ error: PHONE_LOCKED_ERROR });
+      }
+    }
+
     await db
       .update(users)
       .set({
@@ -665,6 +688,14 @@ authRouter.patch('/profile', requireAuth, async (req: AuthRequest, res) => {
       const phoneCheck = uzPhoneSchema.safeParse(req.body.phone);
       if (!phoneCheck.success) {
         return res.status(400).json({ error: phoneCheck.error.issues[0]?.message });
+      }
+      const owner = await phoneOwner(phoneCheck.data);
+      if (owner && owner.id !== req.currentUser!.id) {
+        return res.status(409).json({ error: PHONE_TAKEN_ERROR });
+      }
+      const changed = (req.currentUser!.phone || '').replace(/\D/g, '') !== phoneCheck.data.replace(/\D/g, '');
+      if (changed && (await phoneLocked(req.currentUser!.id))) {
+        return res.status(409).json({ error: PHONE_LOCKED_ERROR });
       }
       updates.phone = phoneCheck.data;
     }
