@@ -374,6 +374,13 @@ async function removeDemoData(_namanganCityId: number): Promise<void> {
     await db.execute(sql`DELETE FROM sessions WHERE user_id = ${demoAdmin.id}`);
   }
 
+  // One-off: district accidentally created from the MFY name "Kichik Toshbuloq".
+  await db.execute(
+    sql`DELETE FROM districts d WHERE d.normalized_name = 'kichik toshbuloq'
+        AND NOT EXISTS (SELECT 1 FROM mfys m WHERE m.district_id = d.id)
+        AND NOT EXISTS (SELECT 1 FROM users u WHERE u.district_id = d.id)`
+  ).catch((err) => console.warn('Accidental district not removed:', (err as Error).message));
+
   // Demo MFYs: delete each one that no real data points at.
   for (const name of DEMO_MFY_NAMES) {
     const norm = normalizeGeographyName(name);

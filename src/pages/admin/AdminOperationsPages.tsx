@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Building2, CheckCircle2, FileWarning, GitMerge, Truck, Users } from 'lucide-react';
+import { Building2, Check, CheckCircle2, FileWarning, GitMerge, Pencil, Truck, Users, X as XIcon } from 'lucide-react';
 import { apiRequest, formatTashkentDateTime } from '../../lib/api';
 import {
   Button,
@@ -39,6 +39,7 @@ export const AdminMfysPage: React.FC = () => {
   const [mergeSource, setMergeSource] = useState<AdminMfy | null>(null);
   const [mergeTargetId, setMergeTargetId] = useState<number>(0);
   const [thresholdDrafts, setThresholdDrafts] = useState<Record<number, string>>({});
+  const [nameEdit, setNameEdit] = useState<{ id: number; value: string } | null>(null);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['admin-mfys'],
@@ -67,6 +68,7 @@ export const AdminMfysPage: React.FC = () => {
       }),
     onSuccess: () => {
       toastSuccess('MFY yangilandi.');
+      setNameEdit(null);
       queryClient.invalidateQueries({ queryKey: ['admin-mfys'] });
     },
     onError: (err) => toastError(err instanceof Error ? err.message : 'Xatolik.'),
@@ -140,7 +142,45 @@ export const AdminMfysPage: React.FC = () => {
               <tbody className="divide-y divide-[var(--border-default)] text-[14px]">
                 {data.mfys.map((m) => (
                   <tr key={m.id} className="min-h-[60px]">
-                    <td className="px-[20px] py-[12px] font-semibold">{m.name}</td>
+                    <td className="px-[20px] py-[12px] font-semibold">
+                      {nameEdit?.id === m.id ? (
+                        <form
+                          className="flex items-center gap-[6px]"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            patchMfyMutation.mutate({ id: m.id, payload: { name: nameEdit.value } });
+                          }}
+                        >
+                          <Input
+                            autoFocus
+                            aria-label="MFY nomi"
+                            value={nameEdit.value}
+                            onChange={(e) => setNameEdit({ id: m.id, value: e.target.value })}
+                            onKeyDown={(e) => e.key === 'Escape' && setNameEdit(null)}
+                            className="min-h-[36px] h-[36px] w-[180px] py-[4px] px-[8px]"
+                          />
+                          <button type="submit" aria-label="Saqlash" title="Saqlash" className="p-[6px] rounded-[8px] text-[#047857] hover:bg-[#ECFDF5] cursor-pointer">
+                            <Check className="w-[18px] h-[18px]" />
+                          </button>
+                          <button type="button" aria-label="Bekor qilish" title="Bekor qilish" onClick={() => setNameEdit(null)} className="p-[6px] rounded-[8px] text-[#64748B] hover:bg-[#F1F5F9] cursor-pointer">
+                            <XIcon className="w-[18px] h-[18px]" />
+                          </button>
+                        </form>
+                      ) : (
+                        <span className="inline-flex items-center gap-[6px]">
+                          {m.name}
+                          <button
+                            type="button"
+                            aria-label={`${m.name} nomini tahrirlash`}
+                            title="Nomini tahrirlash"
+                            onClick={() => setNameEdit({ id: m.id, value: m.name })}
+                            className="p-[4px] rounded-[6px] text-[#94A3B8] hover:text-[#047857] hover:bg-[#F1F5F9] dark:hover:bg-[#1A2F27] cursor-pointer"
+                          >
+                            <Pencil className="w-[14px] h-[14px]" />
+                          </button>
+                        </span>
+                      )}
+                    </td>
                     <td className="px-[16px] py-[12px] text-[#64748B] dark:text-[#A7B8AE]">{m.districtName}</td>
                     <td className="px-[16px] py-[12px]">
                       <StatusBadge

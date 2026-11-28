@@ -266,8 +266,11 @@ adminRouter.post('/admin/districts', async (req: AuthRequest, res) => {
     });
     return res.status(201).json({ district: created });
   } catch (err) {
+    if ((err as { code?: string })?.code === '23505') {
+      return res.status(409).json({ error: 'Bunday tuman allaqachon mavjud.' });
+    }
     console.error(err);
-    return res.status(409).json({ error: 'Bunday tuman allaqachon mavjud yoki saqlashda xatolik.' });
+    return res.status(500).json({ error: 'Tumanni saqlashda xatolik.' });
   }
 });
 
@@ -331,6 +334,14 @@ adminRouter.patch('/admin/mfys/:id', async (req: AuthRequest, res) => {
       }
       updates.workloadThresholdLiters = th;
     }
+    if (req.body?.name !== undefined) {
+      const name = cleanDisplayName(String(req.body.name ?? ''));
+      if (name.length < 2 || name.length > 100) {
+        return res.status(400).json({ error: 'MFY nomi 2–100 belgidan iborat bo‘lishi kerak.' });
+      }
+      updates.name = name;
+      updates.normalizedName = normalizeGeographyName(name);
+    }
 
     const updated = await db.transaction(async (tx) => {
       const [row] = await tx.update(mfys).set(updates).where(eq(mfys.id, id)).returning();
@@ -350,6 +361,9 @@ adminRouter.patch('/admin/mfys/:id', async (req: AuthRequest, res) => {
     emitAfterCommit({ keys: ['mfys', 'admin-mfys', 'driver-mfys'], includeAdmins: true });
     return res.json({ mfy: updated });
   } catch (err) {
+    if ((err as { code?: string })?.code === '23505') {
+      return res.status(409).json({ error: 'Bu tumanda shu nomli MFY allaqachon mavjud.' });
+    }
     console.error(err);
     return res.status(500).json({ error: 'MFYni yangilashda xatolik.' });
   }
