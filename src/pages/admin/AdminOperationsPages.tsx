@@ -348,6 +348,7 @@ interface AdminDriver {
   phone: string;
   approvalStatus: string;
   vehiclePlate: string;
+  vehicleConfirmed?: boolean;
   vehicleCapacityLiters: number;
   assignedMfys: Array<{ driverId: number; mfyId: number; mfyName: string }>;
 }
@@ -436,6 +437,11 @@ export const AdminDriversPage: React.FC = () => {
                       endpoint={`/api/admin/drivers/${drv.id}`}
                       onSaved={() => queryClient.invalidateQueries({ queryKey: ['admin-drivers'] })}
                     />
+                    {drv.vehicleConfirmed === false && (
+                      <span className="ml-[6px] inline-block rounded-[6px] bg-[#FEF3C7] text-[#92400E] px-[6px] py-[1px] text-[11px] font-semibold">
+                        Haydovchi raqamni hali kiritmagan
+                      </span>
+                    )}
                   </div>
                   <div className="text-[12px] text-[#047857] dark:text-[#34D399]">
                     Biriktirilgan MFYlar:{' '}

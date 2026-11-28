@@ -457,6 +457,7 @@ adminRouter.get('/admin/drivers', async (_req, res) => {
         phone: users.phone,
         approvalStatus: drivers.approvalStatus,
         vehiclePlate: drivers.vehiclePlate,
+        vehicleConfirmed: sql<boolean>`drivers.vehicle_confirmed_at IS NOT NULL`,
         vehicleCapacityLiters: drivers.vehicleCapacityLiters,
         createdAt: drivers.createdAt,
       })
@@ -495,7 +496,9 @@ function normalizePlate(raw: unknown): string | null {
 }
 const PLATE_ERROR = 'Avtomobil raqamini to‘g‘ri kiriting (masalan: 50 A 123 BC).';
 
-adminRouter.patch('/admin/drivers/:id', async (req: AuthRequest, res) => {
+adminRouter.patch('/admin/drivers/:id', async (req: AuthRequest, res, next) => {
+  // Only handles vehicle number changes; status changes (suspend/approve) go to the next handler.
+  if (req.body?.vehiclePlate === undefined) return next();
   const plate = normalizePlate(req.body?.vehiclePlate);
   if (!plate) return res.status(400).json({ error: PLATE_ERROR });
   try {
