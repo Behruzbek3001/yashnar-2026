@@ -307,7 +307,7 @@ export async function runReferenceSeed(): Promise<void> {
   if (adminIds.length) {
     await db
       .update(users)
-      .set({ role: 'admin', accountStatus: 'active' })
+      .set({ role: 'admin', accountStatus: 'active', fullName: 'Admin', publicLeaderboardName: 'Admin' })
       .where(inArray(users.id, adminIds));
   }
 
