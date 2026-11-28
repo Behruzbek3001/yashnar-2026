@@ -90,13 +90,10 @@ export async function runReferenceSeed(): Promise<void> {
   const davlatobod = districtRows.find((d) => d.name === 'Davlatobod tumani') || districtRows[0];
 
   // 2. Seed initial approved MFYs
-  const seedMfys = [
-    { districtId: namanganCity.id, name: 'Boburshoh MFY', threshold: 400 },
-    { districtId: namanganCity.id, name: 'Navbahor MFY', threshold: 500 },
-    { districtId: namanganCity.id, name: 'Do‘stlik MFY', threshold: 450 },
-    { districtId: davlatobod.id, name: 'Gulobod MFY', threshold: 500 },
-    { districtId: davlatobod.id, name: 'Yangiobod MFY', threshold: 500 },
-  ];
+  // Demo MFYs removed: MFYs are now added by real citizens and approved by admins.
+  const seedMfys: Array<{ districtId: number; name: string; threshold: number }> = [];
+  void davlatobod;
+
 
   const mfyIds: number[] = [];
   for (const item of seedMfys) {
@@ -302,90 +299,65 @@ export async function runReferenceSeed(): Promise<void> {
     ]);
   }
 
-  // 9. Seed Reference Staff Accounts (Admin & Approved Driver) if not present
-  const existingAdmin = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.email, 'admin@yashnar.uz'))
-    .limit(1);
-
-  let adminId = existingAdmin[0]?.id;
-  if (!adminId) {
-    const adminPass = await hashPassword('AdminYashnar2026!');
-    const [createdAdmin] = await db
-      .insert(users)
-      .values({
-        uid: 'local:seed-admin-yashnar',
-        email: 'admin@yashnar.uz',
-        passwordHash: adminPass,
-        fullName: 'Sardorbek Rahimov',
-        phone: '+998901000001',
-        role: 'admin',
-        accountStatus: 'active',
-        regionId: region.id,
-        districtId: namanganCity.id,
-        mfyId: mfyIds[0] ?? null,
-        publicLeaderboardName: 'Sardorbek R.',
-        leaderboardVisible: false,
-        onboardingCompleted: true,
-      })
-      .returning({ id: users.id });
-    adminId = createdAdmin.id;
-    await db.insert(wallets).values({ userId: adminId }).onConflictDoNothing();
+  // 9. Real admins: promote the user IDs listed in ADMIN_USER_IDS (comma-separated).
+  const adminIds = (process.env.ADMIN_USER_IDS || '')
+    .split(',')
+    .map((v) => Number(v.trim()))
+    .filter((n) => Number.isInteger(n) && n > 0);
+  if (adminIds.length) {
+    await db
+      .update(users)
+      .set({ role: 'admin', accountStatus: 'active' })
+      .where(inArray(users.id, adminIds));
   }
 
-  const existingDriverUser = await db
+  // 10. Remove demo data (demo driver, demo admin, demo MFYs) once a real admin exists.
+  await removeDemoData(namanganCity.id);
+}
+
+const DEMO_MFY_NAMES = ['Boburshoh MFY', 'Navbahor MFY', 'Do‘stlik MFY', 'Gulobod MFY', 'Yangiobod MFY'];
+
+async function removeDemoData(_namanganCityId: number): Promise<void> {
+  const realAdmins = await db
     .select({ id: users.id })
     .from(users)
-    .where(eq(users.email, 'driver@yashnar.uz'))
+    .where(
+      sql`${users.role} = 'admin' AND ${users.accountStatus} = 'active' AND ${users.email} IS DISTINCT FROM 'admin@yashnar.uz'`
+    )
     .limit(1);
+  if (!realAdmins[0]) return; // keep the demo admin until a real admin exists
 
-  if (!existingDriverUser[0]) {
-    const driverPass = await hashPassword('DriverYashnar2026!');
-    const [createdDriverUser] = await db
-      .insert(users)
-      .values({
-        uid: 'local:seed-driver-yashnar',
-        email: 'driver@yashnar.uz',
-        passwordHash: driverPass,
-        fullName: 'Dilshodjon Karimov',
-        phone: '+998901000002',
-        role: 'driver',
-        accountStatus: 'active',
-        regionId: region.id,
-        districtId: namanganCity.id,
-        mfyId: mfyIds[0] ?? null,
-        publicLeaderboardName: 'Dilshodjon K.',
-        leaderboardVisible: false,
-        onboardingCompleted: true,
-      })
-      .returning({ id: users.id });
+  // Demo driver: delete the account entirely (cascades driver row, assignments, wallet, sessions).
+  try {
+    await db.delete(users).where(eq(users.email, 'driver@yashnar.uz'));
+  } catch (err) {
+    console.warn('Demo driver could not be deleted, suspending instead:', (err as Error).message);
+    await db.update(users).set({ accountStatus: 'suspended' }).where(eq(users.email, 'driver@yashnar.uz'));
+  }
 
-    await db.insert(wallets).values({ userId: createdDriverUser.id }).onConflictDoNothing();
+  // Demo admin: audit history references it, so lock it instead of deleting.
+  const [demoAdmin] = await db.select({ id: users.id, status: users.accountStatus }).from(users).where(eq(users.email, 'admin@yashnar.uz')).limit(1);
+  if (demoAdmin && demoAdmin.status !== 'suspended') {
+    const { randomBytes } = await import('node:crypto');
+    await db
+      .update(users)
+      .set({ accountStatus: 'suspended', role: 'citizen', mfyId: null, passwordHash: await hashPassword(randomBytes(32).toString('hex')) })
+      .where(eq(users.id, demoAdmin.id));
+    await db.execute(sql`DELETE FROM sessions WHERE user_id = ${demoAdmin.id}`);
+  }
 
-    const [driverRow] = await db
-      .insert(drivers)
-      .values({
-        userId: createdDriverUser.id,
-        approvalStatus: 'approved',
-        vehiclePlate: '50 A 742 EA',
-        vehicleCapacityLiters: 4000,
-        approvedBy: adminId,
-        approvedAt: new Date(),
-      })
-      .returning({ id: drivers.id });
-
-    // Assign driver to first 3 Namangan MFYs
-    for (const mfyId of mfyIds.slice(0, 3)) {
-      await db
-        .insert(driverAssignments)
-        .values({
-          driverId: driverRow.id,
-          mfyId,
-          assignedBy: adminId,
-          isActive: true,
-        })
-        .onConflictDoNothing();
+  // Demo MFYs: delete each one that no real data points at.
+  for (const name of DEMO_MFY_NAMES) {
+    const norm = normalizeGeographyName(name);
+    try {
+      await db.execute(
+        sql`DELETE FROM mfys m WHERE m.normalized_name = ${norm}
+            AND NOT EXISTS (SELECT 1 FROM users u WHERE u.mfy_id = m.id)
+            AND NOT EXISTS (SELECT 1 FROM waste_reports w WHERE w.mfy_id = m.id)
+            AND NOT EXISTS (SELECT 1 FROM driver_trips t WHERE t.mfy_id = m.id)`
+      );
+    } catch (err) {
+      console.warn(`Demo MFY "${name}" not removed:`, (err as Error).message);
     }
   }
 }
