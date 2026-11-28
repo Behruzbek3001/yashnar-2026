@@ -311,6 +311,34 @@ export async function runReferenceSeed(): Promise<void> {
       .where(inArray(users.id, adminIds));
   }
 
+  // 9b. Dedicated admin login from ADMIN_EMAIL / ADMIN_PASSWORD (created once; password kept if changed later).
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (adminEmail && adminPassword) {
+    const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, adminEmail)).limit(1);
+    if (existing) {
+      await db.update(users).set({ role: 'admin', accountStatus: 'active' }).where(eq(users.id, existing.id));
+    } else {
+      const [created] = await db
+        .insert(users)
+        .values({
+          uid: `local:admin-${adminEmail}`,
+          email: adminEmail,
+          passwordHash: await hashPassword(adminPassword),
+          fullName: 'Admin',
+          role: 'admin',
+          accountStatus: 'active',
+          regionId: region.id,
+          districtId: namanganCity.id,
+          publicLeaderboardName: 'Admin',
+          leaderboardVisible: false,
+          onboardingCompleted: true,
+        })
+        .returning({ id: users.id });
+      await db.insert(wallets).values({ userId: created.id }).onConflictDoNothing();
+    }
+  }
+
   // 10. Remove demo data (demo driver, demo admin, demo MFYs) once a real admin exists.
   await removeDemoData(namanganCity.id);
 }

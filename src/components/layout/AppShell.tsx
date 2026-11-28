@@ -34,6 +34,7 @@ import {
   Menu,
   X,
   MoreHorizontal,
+  RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiRequest, formatTashkentDateTime } from '../../lib/api';
@@ -101,6 +102,7 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
 
@@ -260,6 +262,27 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
           <span className="hidden md:inline-block text-[13px] font-medium text-[#64748B] dark:text-[#A7B8AE] mr-[8px] whitespace-nowrap">
             {user?.regionName || 'Namangan viloyati'}
           </span>
+
+          {user?.role === 'admin' && (
+            <button
+              type="button"
+              onClick={async () => {
+                setRefreshing(true);
+                try {
+                  await queryClient.invalidateQueries();
+                  await queryClient.refetchQueries({ type: 'active' });
+                } finally {
+                  setRefreshing(false);
+                }
+              }}
+              disabled={refreshing}
+              aria-label="Yangilash"
+              title="Yangilash"
+              className="w-[44px] h-[44px] rounded-[10px] flex items-center justify-center text-[#64748B] dark:text-[#A7B8AE] hover:bg-[#F1F5F9] dark:hover:bg-[#1A2F27] cursor-pointer disabled:opacity-60"
+            >
+              <RefreshCw className={cn('w-[20px] h-[20px]', refreshing && 'animate-spin')} />
+            </button>
+          )}
 
           <button
             type="button"
