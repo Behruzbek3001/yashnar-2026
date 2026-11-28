@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import React, { useEffect, useMemo, useState } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle } from 'react-leaflet';
 import L from 'leaflet';
-import { Truck } from 'lucide-react';
+import { Navigation, Truck } from 'lucide-react';
+import { distanceKm } from '../../lib/eta';
 import { formatTashkentDateTime } from '../../lib/api';
 import { REPORT_STATUS_LABELS, type ReportStatus } from '../../lib/domain';
 
@@ -10,6 +11,7 @@ export interface MapDriverPoint {
   driverId: number;
   driverName: string;
   vehiclePlate?: string;
+  driverPhone?: string;
   mfyName?: string;
   latitude: number;
   longitude: number;
@@ -64,14 +66,42 @@ function createPickupIcon(selected: boolean) {
   });
 }
 
+/** Visit order: always go to the nearest remaining pickup next. */
+function orderByNearest(start: [number, number], pts: MapPickupPoint[]): MapPickupPoint[] {
+  const left = [...pts];
+  const out: MapPickupPoint[] = [];
+  let cur = start;
+  while (left.length) {
+    let bi = 0;
+    let bd = Infinity;
+    left.forEach((p, i) => {
+      const d = distanceKm(cur[0], cur[1], p.latitude!, p.longitude!);
+      if (d < bd) {
+        bd = d;
+        bi = i;
+      }
+    });
+    const [next] = left.splice(bi, 1);
+    out.push(next);
+    cur = [next.latitude!, next.longitude!];
+  }
+  return out;
+}
+
 export const YashnarMap: React.FC<{
   drivers: MapDriverPoint[];
   pickups: MapPickupPoint[];
   emptyMessage?: string;
+  /** Draw the driving route from the first driver through all pickups (nearest first). */
+  showRoute?: boolean;
+  /** Draw a circle of this radius around the first driver and count pickups inside it. */
+  areaRadiusMeters?: number;
 }> = ({
   drivers,
   pickups,
   emptyMessage = 'Hozircha faol haydovchi joylashuvi mavjud emas.',
+  showRoute = false,
+  areaRadiusMeters,
 }) => {
   const [selectedDriverId, setSelectedDriverId] = useState<number | null>(
     drivers[0]?.tripId ?? null
@@ -91,6 +121,54 @@ export const YashnarMap: React.FC<{
 
   const selectedDriver = drivers.find((d) => d.tripId === selectedDriverId) ?? drivers[0] ?? null;
 
+  const routeStart: [number, number] | null = drivers[0] ? [drivers[0].latitude, drivers[0].longitude] : null;
+  const ordered = useMemo(
+    () => (showRoute && routeStart ? orderByNearest(routeStart, validPickups).slice(0, 20) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [showRoute, routeStart?.[0], routeStart?.[1], validPickups]
+  );
+  const routeKey = routeStart ? [routeStart, ...ordered.map((p) => [p.latitude, p.longitude])].map(String).join('|') : '';
+  const [roadPath, setRoadPath] = useState<[number, number][] | null>(null);
+  const [roadInfo, setRoadInfo] = useState<{ km: number; min: number } | null>(null);
+  useEffect(() => {
+    setRoadPath(null);
+    setRoadInfo(null);
+    if (!routeStart || !ordered.length) return;
+    const coords = [routeStart, ...ordered.map((p) => [p.latitude!, p.longitude!] as [number, number])]
+      .map(([la, ln]) => `${ln.toFixed(6)},${la.toFixed(6)}`)
+      .join(';');
+    const ctrl = new AbortController();
+    fetch(`https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`, { signal: ctrl.signal })
+      .then((r) => r.json())
+      .then((j) => {
+        const route = j?.routes?.[0];
+        if (!route) return;
+        setRoadPath(route.geometry.coordinates.map(([ln, la]: [number, number]) => [la, ln]));
+        setRoadInfo({ km: route.distance / 1000, min: Math.round(route.duration / 60) });
+      })
+      .catch(() => {});
+    return () => ctrl.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeKey]);
+  const straightPath: [number, number][] = routeStart
+    ? [routeStart, ...ordered.map((p) => [p.latitude!, p.longitude!] as [number, number])]
+    : [];
+  const googleNavUrl =
+    routeStart && ordered.length
+      ? `https://www.google.com/maps/dir/?api=1&travelmode=driving&origin=${routeStart[0]},${routeStart[1]}&destination=${ordered[ordered.length - 1].latitude},${ordered[ordered.length - 1].longitude}` +
+        (ordered.length > 1
+          ? `&waypoints=${ordered
+              .slice(0, -1)
+              .slice(0, 9)
+              .map((p) => `${p.latitude},${p.longitude}`)
+              .join('|')}`
+          : '')
+      : null;
+  const insideCircle =
+    areaRadiusMeters && routeStart
+      ? validPickups.filter((p) => distanceKm(routeStart[0], routeStart[1], p.latitude!, p.longitude!) * 1000 <= areaRadiusMeters)
+      : [];
+
   return (
     <div className="space-y-[16px]">
       <div
@@ -107,6 +185,19 @@ export const YashnarMap: React.FC<{
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
+          {areaRadiusMeters && routeStart && (
+            <Circle
+              center={routeStart}
+              radius={areaRadiusMeters}
+              pathOptions={{ color: '#059669', weight: 2, fillColor: '#10B981', fillOpacity: 0.08 }}
+            />
+          )}
+          {showRoute && straightPath.length > 1 && (
+            <Polyline
+              positions={roadPath ?? straightPath}
+              pathOptions={roadPath ? { color: '#2563EB', weight: 5, opacity: 0.85 } : { color: '#2563EB', weight: 3, dashArray: '6 8' }}
+            />
+          )}
           {drivers.map((drv) => (
             <Marker
               key={`driver-${drv.tripId}`}
@@ -123,6 +214,14 @@ export const YashnarMap: React.FC<{
                 <div className="text-[13px] leading-[18px]">
                   <div className="font-semibold">{drv.driverName}</div>
                   {drv.vehiclePlate && <div>Avto: {drv.vehiclePlate}</div>}
+                  {drv.driverPhone && (
+                    <div>
+                      Tel:{' '}
+                      <a href={`tel:${drv.driverPhone}`} className="font-semibold text-[#047857] underline">
+                        {drv.driverPhone}
+                      </a>
+                    </div>
+                  )}
                   <div>Aniqlik: ±{Math.round(drv.accuracyMeters)} m</div>
                   <div>Yangilandi: {formatTashkentDateTime(drv.receivedAt)}</div>
                 </div>
@@ -141,7 +240,10 @@ export const YashnarMap: React.FC<{
             >
               <Popup>
                 <div className="text-[13px] leading-[18px]">
-                  <div className="font-semibold">{p.publicCode}</div>
+                  <div className="font-semibold">
+                    {showRoute && ordered.findIndex((o) => o.id === p.id) >= 0 ? `${ordered.findIndex((o) => o.id === p.id) + 1}. ` : ''}
+                    {p.publicCode}
+                  </div>
                   <div>{p.category} · {p.estimatedRange || `${p.estimatedLiters ?? 0} L`}</div>
                   <div>Holat: {REPORT_STATUS_LABELS[p.status as ReportStatus] ?? p.status}</div>
                 </div>
@@ -150,6 +252,38 @@ export const YashnarMap: React.FC<{
           ))}
         </MapContainer>
       </div>
+
+      {(showRoute || areaRadiusMeters) && routeStart && (
+        <div className="card-surface p-[16px] flex flex-wrap items-center justify-between gap-[12px] text-[14px]">
+          <div className="space-y-[2px]">
+            {areaRadiusMeters ? (
+              <div>
+                <b>{(areaRadiusMeters / 1000).toFixed(1)} km</b> atrofda kutayotgan murojaatlar: <b>{insideCircle.length} ta</b>
+                {' '}(jami: {validPickups.length} ta)
+              </div>
+            ) : null}
+            {showRoute && ordered.length ? (
+              <div className="text-[#64748B] dark:text-[#A7B8AE]">
+                Yo‘nalish: {ordered.length} ta nuqta (eng yaqinidan boshlab)
+                {roadInfo ? ` · ${roadInfo.km.toFixed(1)} km · ≈ ${roadInfo.min} daqiqa` : ''}
+              </div>
+            ) : showRoute ? (
+              <div className="text-[#64748B] dark:text-[#A7B8AE]">Manzili ko‘rsatilgan kutayotgan murojaatlar yo‘q.</div>
+            ) : null}
+          </div>
+          {googleNavUrl && (
+            <a
+              href={googleNavUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-[6px] rounded-[10px] bg-[#047857] text-white px-[14px] py-[10px] font-semibold"
+            >
+              <Navigation className="w-[16px] h-[16px]" aria-hidden="true" />
+              Navigatorda ochish
+            </a>
+          )}
+        </div>
+      )}
 
       {/* Driver Info Card (20px pad, 44x44 icon, 16/24/600 name, 12/18 supporting) */}
       {selectedDriver ? (
@@ -162,6 +296,14 @@ export const YashnarMap: React.FC<{
               <div className="text-[16px] leading-[24px] font-semibold text-[#0F172A] dark:text-[#F1F5F9]">
                 {selectedDriver.driverName}
               </div>
+              {selectedDriver.driverPhone && (
+                <a
+                  href={`tel:${selectedDriver.driverPhone}`}
+                  className="inline-block text-[14px] font-semibold text-[#047857] dark:text-[#34D399] underline"
+                >
+                  📞 {selectedDriver.driverPhone}
+                </a>
+              )}
               <div className="text-[12px] leading-[18px] text-[#64748B] dark:text-[#A7B8AE] flex flex-wrap items-center gap-x-[8px]">
                 {selectedDriver.vehiclePlate && <span>{selectedDriver.vehiclePlate}</span>}
                 {selectedDriver.mfyName && <span>· {selectedDriver.mfyName}</span>}

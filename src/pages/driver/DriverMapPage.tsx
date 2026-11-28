@@ -147,6 +147,8 @@ export const DriverMapPage: React.FC = () => {
           drivers={driverMarkers}
           pickups={data?.pickups ?? []}
           emptyMessage="Faol reys va GPS signali boshlangach, joylashuvingiz xaritada ko‘rinadi."
+          showRoute
+          areaRadiusMeters={1000}
         />
       )}
     </div>

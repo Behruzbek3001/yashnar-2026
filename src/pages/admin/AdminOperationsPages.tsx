@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Building2, Check, CheckCircle2, FileWarning, GitMerge, Pencil, Truck, Users, X as XIcon } from 'lucide-react';
 import { apiRequest, formatTashkentDateTime } from '../../lib/api';
+import { PlateEditor } from '../../components/ui/PlateEditor';
 import {
   Button,
   Card,
@@ -428,7 +429,12 @@ export const AdminDriversPage: React.FC = () => {
                     />
                   </div>
                   <div className="text-[13px] text-[#64748B] dark:text-[#A7B8AE]">
-                    {drv.email} · {drv.phone} · Avto: {drv.vehiclePlate}
+                    {drv.email} · {drv.phone} ·{' '}
+                    <PlateEditor
+                      plate={drv.vehiclePlate}
+                      endpoint={`/api/admin/drivers/${drv.id}`}
+                      onSaved={() => queryClient.invalidateQueries({ queryKey: ['admin-drivers'] })}
+                    />
                   </div>
                   <div className="text-[12px] text-[#047857] dark:text-[#34D399]">
                     Biriktirilgan MFYlar:{' '}

@@ -756,6 +756,7 @@ citizenRouter.get('/citizen/map', requireAuth, async (req: AuthRequest, res) => 
         accuracyMeters: driverLocations.accuracyMeters,
         receivedAt: driverLocations.receivedAt,
         driverName: users.fullName,
+        driverPhone: users.phone,
         vehiclePlate: drivers.vehiclePlate,
         tripStartedAt: driverTrips.startedAt,
       })
@@ -778,6 +779,7 @@ citizenRouter.get('/citizen/map', requireAuth, async (req: AuthRequest, res) => 
       tripId: d.tripId,
       driverId: d.driverId,
       driverName: d.driverName,
+      driverPhone: d.driverPhone || undefined,
       vehiclePlate: d.vehiclePlate,
       latitude: d.latitude,
       longitude: d.longitude,

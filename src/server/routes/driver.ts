@@ -35,6 +35,27 @@ export const driverRouter = Router();
 
 driverRouter.use('/driver', requireRole('driver'));
 
+/** Normalizes an Uzbek vehicle plate ("01 A 123 BC" / "01 123 ABC"). Returns null if invalid. */
+function normalizePlate(raw: unknown): string | null {
+  const v = String(raw ?? '').toUpperCase().replace(/\s+/g, ' ').trim();
+  if (v.length < 5 || v.length > 16 || !/^[0-9A-Z ]+$/.test(v) || !/[0-9]/.test(v)) return null;
+  return v;
+}
+const PLATE_ERROR = 'Avtomobil raqamini to‘g‘ri kiriting (masalan: 50 A 123 BC).';
+
+driverRouter.patch('/driver/vehicle', async (req: AuthRequest, res) => {
+  const plate = normalizePlate(req.body?.vehiclePlate);
+  if (!plate) return res.status(400).json({ error: PLATE_ERROR });
+  try {
+    await db.update(drivers).set({ vehiclePlate: plate }).where(eq(drivers.id, req.currentUser!.driverId!));
+    emitAfterCommit({ keys: ['admin-drivers', 'driver-dashboard'], includeAdmins: true });
+    return res.json({ vehiclePlate: plate });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Avtomobil raqamini saqlashda xatolik.' });
+  }
+});
+
 async function getAssignedMfyIds(driverId: number): Promise<number[]> {
   const rows = await db
     .select({ mfyId: driverAssignments.mfyId })

@@ -4,6 +4,7 @@ import { Building2, CheckCircle2, ClipboardList, Navigation, Scale, ScanLine } f
 import { Link } from 'react-router-dom';
 import { apiRequest, formatTashkentDateTime } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
+import { PlateEditor } from '../../components/ui/PlateEditor';
 import { Button, Card, ErrorAlert, StatusBadge, useToast } from '../../components/ui/Primitives';
 
 interface DriverDashboardResponse {
@@ -24,7 +25,7 @@ interface DriverDashboardResponse {
 }
 
 export const DriverDashboardPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const queryClient = useQueryClient();
   const { toastSuccess, toastError } = useToast();
 
@@ -85,8 +86,14 @@ export const DriverDashboardPage: React.FC = () => {
           </h1>
           <p className="mt-[4px] text-[14px] leading-[22px] text-[#64748B] dark:text-[#A7B8AE]">
             {user?.fullName}
-            {user?.driver?.vehiclePlate ? ` · ${user.driver.vehiclePlate}` : ''}
           </p>
+          <div className="mt-[4px] text-[14px] text-[#64748B] dark:text-[#A7B8AE]">
+            <PlateEditor
+              plate={user?.driver?.vehiclePlate ?? ''}
+              endpoint="/api/driver/vehicle"
+              onSaved={() => void refreshUser()}
+            />
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-[12px]">

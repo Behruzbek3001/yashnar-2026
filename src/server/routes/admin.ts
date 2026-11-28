@@ -486,6 +486,38 @@ adminRouter.get('/admin/drivers', async (_req, res) => {
   }
 });
 
+
+/** Normalizes an Uzbek vehicle plate ("01 A 123 BC" / "01 123 ABC"). Returns null if invalid. */
+function normalizePlate(raw: unknown): string | null {
+  const v = String(raw ?? '').toUpperCase().replace(/\s+/g, ' ').trim();
+  if (v.length < 5 || v.length > 16 || !/^[0-9A-Z ]+$/.test(v) || !/[0-9]/.test(v)) return null;
+  return v;
+}
+const PLATE_ERROR = 'Avtomobil raqamini to‘g‘ri kiriting (masalan: 50 A 123 BC).';
+
+adminRouter.patch('/admin/drivers/:id', async (req: AuthRequest, res) => {
+  const plate = normalizePlate(req.body?.vehiclePlate);
+  if (!plate) return res.status(400).json({ error: PLATE_ERROR });
+  try {
+    const id = Number(req.params.id);
+    const [row] = await db.update(drivers).set({ vehiclePlate: plate }).where(eq(drivers.id, id)).returning({ id: drivers.id });
+    if (!row) return res.status(404).json({ error: 'Haydovchi topilmadi.' });
+    await recordAuditLogTx(db as never, {
+      actorUserId: req.currentUser!.id,
+      actorRole: 'admin',
+      action: 'driver_vehicle_updated',
+      targetType: 'driver',
+      targetId: String(id),
+      metadata: { vehiclePlate: plate },
+    });
+    emitAfterCommit({ keys: ['admin-drivers', 'driver-dashboard'], includeAdmins: true });
+    return res.json({ vehiclePlate: plate });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Avtomobil raqamini saqlashda xatolik.' });
+  }
+});
+
 adminRouter.post('/admin/drivers/promote', async (req: AuthRequest, res) => {
   try {
     const userId = Number(req.body?.userId);
