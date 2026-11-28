@@ -230,34 +230,3 @@ reportModerationRouter.post('/admin/photo-check', requireAuth, async (req: AuthR
   return res.json({ verdict, rejection: verdictRejection(verdict) });
 });
 
-/** ONE-TIME admin tool: delete every citizen and driver account with all their data. Admins are kept. */
-reportModerationRouter.post('/admin/reset-non-admin-users', requireAuth, async (req: AuthRequest, res) => {
-  if (req.currentUser!.role !== 'admin') return res.status(403).json({ error: 'Ruxsat yo‘q.' });
-  if (req.body?.confirm !== 'DELETE ALL CITIZENS AND DRIVERS') return res.status(400).json({ error: 'Tasdiqlash matni noto‘g‘ri.' });
-  try {
-    const counts = await db.transaction(async (tx) => {
-      const n = async (q: ReturnType<typeof sql>) => {
-        const r = (await tx.execute(q)) as unknown as { rowCount?: number; affectedRows?: number };
-        return r.rowCount ?? r.affectedRows ?? 0;
-      };
-      await tx.execute(sql`CREATE TEMP TABLE t_users ON COMMIT DROP AS SELECT id FROM users WHERE role IN ('citizen', 'driver')`);
-      await tx.execute(sql`CREATE TEMP TABLE t_drivers ON COMMIT DROP AS SELECT id FROM drivers WHERE user_id IN (SELECT id FROM t_users)`);
-      await tx.execute(sql`DELETE FROM qr_scan_events WHERE citizen_id IN (SELECT id FROM t_users) OR driver_id IN (SELECT id FROM t_drivers)`);
-      await tx.execute(sql`UPDATE waste_reports SET assigned_driver_id = NULL, trip_id = NULL WHERE assigned_driver_id IN (SELECT id FROM t_drivers) OR trip_id IN (SELECT id FROM driver_trips WHERE driver_id IN (SELECT id FROM t_drivers))`);
-      await tx.execute(sql`DELETE FROM report_status_events WHERE actor_user_id IN (SELECT id FROM t_users)`);
-      await tx.execute(sql`DELETE FROM inventory_events WHERE actor_user_id IN (SELECT id FROM t_users) OR redemption_id IN (SELECT id FROM redemptions WHERE user_id IN (SELECT id FROM t_users))`);
-      await tx.execute(sql`DELETE FROM audit_logs WHERE actor_user_id IN (SELECT id FROM t_users)`);
-      await tx.execute(sql`UPDATE disputes SET resolved_by = NULL WHERE resolved_by IN (SELECT id FROM t_users)`);
-      await tx.execute(sql`DELETE FROM driver_assignments WHERE assigned_by IN (SELECT id FROM t_users)`);
-      await tx.execute(sql`UPDATE drivers SET approved_by = NULL WHERE approved_by IN (SELECT id FROM t_users)`);
-      await tx.execute(sql`DELETE FROM sms_daily WHERE user_id IN (SELECT id FROM t_users)`);
-      const users = await n(sql`DELETE FROM users WHERE id IN (SELECT id FROM t_users)`);
-      return { users };
-    });
-    emitAfterCommit({ keys: ['admin-drivers', 'admin-citizens', 'admin-reports'], includeAdmins: true });
-    return res.json({ ok: true, deleted: counts });
-  } catch (err) {
-    console.error('Reset failed:', err);
-    return res.status(500).json({ error: String((err as Error).message).slice(0, 300) });
-  }
-});
