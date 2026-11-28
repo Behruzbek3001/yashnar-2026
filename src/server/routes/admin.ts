@@ -274,6 +274,45 @@ adminRouter.post('/admin/districts', async (req: AuthRequest, res) => {
   }
 });
 
+adminRouter.post('/admin/mfys', async (req: AuthRequest, res) => {
+  try {
+    const name = cleanDisplayName(String(req.body?.name ?? ''));
+    const districtId = Number(req.body?.districtId);
+    if (name.length < 2 || name.length > 100) {
+      return res.status(400).json({ error: 'MFY nomi 2–100 belgidan iborat bo‘lishi kerak.' });
+    }
+    if (!Number.isInteger(districtId) || districtId <= 0) {
+      return res.status(400).json({ error: 'Tumanni tanlang.' });
+    }
+    const [district] = await db.select({ id: districts.id }).from(districts).where(eq(districts.id, districtId)).limit(1);
+    if (!district) return res.status(404).json({ error: 'Tuman topilmadi.' });
+
+    const created = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .insert(mfys)
+        .values({ districtId, name, normalizedName: normalizeGeographyName(name), status: 'approved' })
+        .returning();
+      await recordAuditLogTx(tx, {
+        actorUserId: req.currentUser!.id,
+        actorRole: 'admin',
+        action: 'mfy_created',
+        targetType: 'mfy',
+        targetId: String(row.id),
+        metadata: { name, districtId },
+      });
+      return row;
+    });
+    emitAfterCommit({ keys: ['mfys', 'admin-mfys', 'driver-mfys'], includeAdmins: true });
+    return res.status(201).json({ mfy: created });
+  } catch (err) {
+    if ((err as { code?: string })?.code === '23505') {
+      return res.status(409).json({ error: 'Bu tumanda shu nomli MFY allaqachon mavjud.' });
+    }
+    console.error(err);
+    return res.status(500).json({ error: 'MFYni saqlashda xatolik.' });
+  }
+});
+
 adminRouter.get('/admin/mfys', async (_req, res) => {
   try {
     const rows = await db

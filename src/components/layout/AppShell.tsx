@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiRequest, formatTashkentDateTime } from '../../lib/api';
+import { pushSupported, syncPushSubscription } from '../../lib/push';
 import { cn, YashnarLogo } from '../ui/Primitives';
 import { PWAInstallButton, OfflineIndicator } from '../pwa/PWAControls';
 
@@ -103,6 +104,12 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
+  const [pushOn, setPushOn] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  useEffect(() => {
+    if (!user) return;
+    syncPushSubscription(false).then(setPushOn).catch(() => setPushOn(false));
+  }, [user?.id]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
 
@@ -325,6 +332,38 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
                     Barchasini o‘qilgan qilish
                   </button>
                 </div>
+                {pushSupported() && !pushOn && (
+                  <div className="px-[16px] py-[10px] border-b border-[var(--border-default)] bg-[#ECFDF5] dark:bg-[#11211B]">
+                    <button
+                      type="button"
+                      disabled={pushBusy}
+                      onClick={async () => {
+                        setPushBusy(true);
+                        try {
+                          const ok = await syncPushSubscription(true);
+                          setPushOn(ok);
+                          if (!ok) {
+                            alert(
+                              Notification.permission === 'denied'
+                                ? 'Bildirishnomalar brauzer sozlamalarida bloklangan. Sayt sozlamalaridan ruxsat bering.'
+                                : 'Bildirishnomalarni yoqib bo‘lmadi.'
+                            );
+                          }
+                        } catch {
+                          alert('Bildirishnomalarni yoqib bo‘lmadi.');
+                        } finally {
+                          setPushBusy(false);
+                        }
+                      }}
+                      className="w-full text-left text-[13px] font-semibold text-[#047857] dark:text-[#34D399] hover:underline cursor-pointer disabled:opacity-60"
+                    >
+                      🔔 Telefon bildirishnomalarini yoqish
+                    </button>
+                    <div className="text-[12px] text-[#64748B] dark:text-[#A7B8AE]">
+                      Ilova yopiq bo‘lsa ham haydovchi yo‘lga chiqqanini bilib olasiz.
+                    </div>
+                  </div>
+                )}
                 <div className="max-h-[320px] overflow-y-auto divide-y divide-[var(--border-default)]">
                   {!notifData?.notifications?.length ? (
                     <div className="p-[24px] text-center text-[13px] text-[#64748B] dark:text-[#A7B8AE]">

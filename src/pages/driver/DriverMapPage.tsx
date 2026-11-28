@@ -1,12 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Navigation, Radio, StopCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { apiRequest, formatTashkentDateTime } from '../../lib/api';
-import { shouldSendGpsUpdate } from '../../lib/domain';
 
-type GpsPoint = { lat: number; lng: number; timestampMs: number };
 import { useAuth } from '../../contexts/AuthContext';
+import { useDriverGps } from '../../contexts/DriverGpsContext';
 import { YashnarMap, type MapDriverPoint, type MapPickupPoint } from '../../components/map/YashnarMap';
 import { Button, Card, ErrorAlert, StatusBadge, useToast } from '../../components/ui/Primitives';
 
@@ -31,11 +30,7 @@ export const DriverMapPage: React.FC = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toastSuccess, toastError } = useToast();
-  const [sharingGps, setSharingGps] = useState(false);
-  const [gpsError, setGpsError] = useState<string | null>(null);
-  const [lastSentAt, setLastSentAt] = useState<string | null>(null);
-  const watchIdRef = useRef<number | null>(null);
-  const lastPointRef = useRef<GpsPoint | null>(null);
+  const { sharingGps, gpsError, lastSentAt, startWatching, stopWatching } = useDriverGps();
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['driver-map'],
@@ -58,71 +53,6 @@ export const DriverMapPage: React.FC = () => {
       toastError(err instanceof Error ? err.message : 'Reysni yakunlashda xatolik.');
     },
   });
-
-  const stopWatching = () => {
-    if (watchIdRef.current !== null && navigator.geolocation) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
-      watchIdRef.current = null;
-    }
-    setSharingGps(false);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (watchIdRef.current !== null && navigator.geolocation) {
-        navigator.geolocation.clearWatch(watchIdRef.current);
-      }
-    };
-  }, []);
-
-  const sendLocation = async (lat: number, lng: number, accuracy: number) => {
-    const nowMs = Date.now();
-    const candidate: GpsPoint = { lat, lng, timestampMs: nowMs };
-    const decision = shouldSendGpsUpdate(lastPointRef.current, candidate);
-    if (!decision.allow) return;
-
-    try {
-      const res = await apiRequest<{ accepted: boolean; receivedAt?: string }>('/api/driver/location', {
-        method: 'POST',
-        body: JSON.stringify({
-          latitude: lat,
-          longitude: lng,
-          accuracyMeters: accuracy,
-          recordedAt: new Date(nowMs).toISOString(),
-        }),
-      });
-      if (res.accepted) {
-        lastPointRef.current = candidate;
-        setLastSentAt(res.receivedAt ?? new Date(nowMs).toISOString());
-        queryClient.invalidateQueries({ queryKey: ['driver-map'] });
-      }
-    } catch (err) {
-      setGpsError(err instanceof Error ? err.message : 'GPS yuborishda xatolik.');
-    }
-  };
-
-  const startWatching = () => {
-    setGpsError(null);
-    if (!navigator.geolocation) {
-      setGpsError('Ushbu qurilmada GPS (Geolocation) qo‘llab-quvvatlanmaydi.');
-      return;
-    }
-    setSharingGps(true);
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      (pos) => {
-        sendLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
-      },
-      (geoErr) => {
-        setGpsError(
-          geoErr.code === geoErr.PERMISSION_DENIED
-            ? 'Joylashuvga ruxsat berilmadi. Brauzer sozlamalaridan GPS ruxsatini yoqing.'
-            : 'GPS signalini olishda xatolik yuz berdi.'
-        );
-        stopWatching();
-      },
-      { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
-    );
-  };
 
   const driverMarkers: MapDriverPoint[] =
     data?.activeTrip && data?.currentLocation

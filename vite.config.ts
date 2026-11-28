@@ -12,7 +12,7 @@ export default defineConfig(() => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['icon.svg', 'apple-touch-icon.png', 'offline.html'],
+        includeAssets: ['icon.svg', 'apple-touch-icon.png', 'offline.html', 'push-sw.js'],
         manifest: {
           id: '/',
           name: 'YASHNAR — Toza mahalla — yashil kelajak!',
@@ -47,6 +47,7 @@ export default defineConfig(() => {
           ],
         },
         workbox: {
+          importScripts: ['/push-sw.js'],
           maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
           navigateFallback: '/index.html',

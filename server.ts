@@ -8,6 +8,7 @@ import { authRouter } from './src/server/routes/auth.ts';
 import { citizenRouter } from './src/server/routes/citizen.ts';
 import { driverRouter } from './src/server/routes/driver.ts';
 import { adminRouter } from './src/server/routes/admin.ts';
+import { pushRouter } from './src/server/push.ts';
 import { attachRealtimeServer } from './src/server/realtime.ts';
 
 async function startServer() {
@@ -31,6 +32,7 @@ async function startServer() {
   app.use('/api', citizenRouter);
   app.use('/api', driverRouter);
   app.use('/api', adminRouter);
+  app.use('/api', pushRouter);
 
   // API 404 fallback
   app.use('/api', (_req, res) => {

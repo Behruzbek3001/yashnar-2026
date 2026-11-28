@@ -46,16 +46,23 @@ export const AdminMfysPage: React.FC = () => {
     queryFn: () => apiRequest<{ mfys: AdminMfy[] }>('/api/admin/mfys'),
   });
 
+  const [newMfyDistrictId, setNewMfyDistrictId] = useState<number>(0);
+  const { data: districtsData } = useQuery({
+    queryKey: ['districts'],
+    queryFn: () => apiRequest<{ districts: Array<{ id: number; name: string }> }>('/api/geography/districts'),
+  });
+
   const createDistrictMutation = useMutation({
     mutationFn: () =>
-      apiRequest('/api/admin/districts', {
+      apiRequest('/api/admin/mfys', {
         method: 'POST',
-        body: JSON.stringify({ name: newDistrictName }),
+        body: JSON.stringify({ name: newDistrictName, districtId: newMfyDistrictId }),
       }),
     onSuccess: () => {
-      toastSuccess('Yangi tuman qo‘shildi.');
+      toastSuccess('Yangi MFY qo‘shildi va tasdiqlandi.');
       setNewDistrictName('');
-      queryClient.invalidateQueries({ queryKey: ['districts'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-mfys'] });
+      queryClient.invalidateQueries({ queryKey: ['mfys'] });
     },
     onError: (err) => toastError(err instanceof Error ? err.message : 'Xatolik.'),
   });
@@ -102,19 +109,36 @@ export const AdminMfysPage: React.FC = () => {
         <form
           onSubmit={(e) => {
             e.preventDefault();
+            if (!newMfyDistrictId) {
+              toastError('Avval tumanni tanlang.');
+              return;
+            }
             if (newDistrictName.trim()) createDistrictMutation.mutate();
           }}
-          className="flex items-center gap-[8px]"
+          className="flex flex-wrap items-center gap-[8px]"
         >
+          <select
+            aria-label="Tuman"
+            value={newMfyDistrictId}
+            onChange={(e) => setNewMfyDistrictId(Number(e.target.value))}
+            className="h-[44px] rounded-[10px] border border-[#E2E8F0] dark:border-[#24382F] bg-white dark:bg-[#11211B] px-[10px] text-[14px] text-[#0F172A] dark:text-[#F1F5F9]"
+          >
+            <option value={0}>Tumanni tanlang...</option>
+            {(districtsData?.districts ?? []).map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
           <Input
-            aria-label="Yangi tuman nomi"
-            placeholder="Yangi tuman nomi..."
+            aria-label="Yangi MFY nomi"
+            placeholder="Yangi MFY nomi..."
             value={newDistrictName}
             onChange={(e) => setNewDistrictName(e.target.value)}
-            className="w-[220px]"
+            className="w-[200px]"
           />
           <Button type="submit" loading={createDistrictMutation.isPending}>
-            Tuman qo‘shish
+            MFY qo‘shish
           </Button>
         </form>
       </div>

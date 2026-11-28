@@ -24,6 +24,7 @@ import {
 import { hashPassword } from './crypto.ts';
 import { DAILY_QUIZ_BANK } from './quiz-bank.ts';
 
+let OFFICIAL_DISTRICT_NORMS: string[] = [];
 let seedPromise: Promise<void> | null = null;
 let seeded = false;
 
@@ -72,6 +73,7 @@ export async function runReferenceSeed(): Promise<void> {
     'Yangiqo‘rg‘on tumani',
   ];
 
+  OFFICIAL_DISTRICT_NORMS = namanganDistricts.map((n) => normalizeGeographyName(n));
   const districtRows: { id: number; name: string }[] = [];
   for (const name of namanganDistricts) {
     const norm = normalizeGeographyName(name);
@@ -374,12 +376,21 @@ async function removeDemoData(_namanganCityId: number): Promise<void> {
     await db.execute(sql`DELETE FROM sessions WHERE user_id = ${demoAdmin.id}`);
   }
 
-  // One-off: district accidentally created from the MFY name "Kichik Toshbuloq".
-  await db.execute(
-    sql`DELETE FROM districts d WHERE d.normalized_name = 'kichik toshbuloq'
-        AND NOT EXISTS (SELECT 1 FROM mfys m WHERE m.district_id = d.id)
-        AND NOT EXISTS (SELECT 1 FROM users u WHERE u.district_id = d.id)`
-  ).catch((err) => console.warn('Accidental district not removed:', (err as Error).message));
+  // Remove districts created by mistake (not an official Namangan district and nothing uses them).
+  try {
+    const official = new Set(OFFICIAL_DISTRICT_NORMS);
+    const all = await db.select({ id: districts.id, norm: districts.normalizedName }).from(districts);
+    for (const d of all) {
+      if (official.has(d.norm)) continue;
+      await db.execute(
+        sql`DELETE FROM districts d WHERE d.id = ${d.id}
+            AND NOT EXISTS (SELECT 1 FROM mfys m WHERE m.district_id = d.id)
+            AND NOT EXISTS (SELECT 1 FROM users u WHERE u.district_id = d.id)`
+      );
+    }
+  } catch (err) {
+    console.warn('Stray districts not removed:', (err as Error).message);
+  }
 
   // Demo MFYs: delete each one that no real data points at.
   for (const name of DEMO_MFY_NAMES) {

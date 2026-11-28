@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { DriverGpsProvider } from './contexts/DriverGpsContext';
 import { ToastProvider, YashnarLogo } from './components/ui/Primitives';
 import { AppShell } from './components/layout/AppShell';
 
@@ -166,10 +167,12 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
         <AuthProvider>
-          <BrowserRouter>
-            <ScrollToTop />
-            <AppRoutes />
-          </BrowserRouter>
+          <DriverGpsProvider>
+            <BrowserRouter>
+              <ScrollToTop />
+              <AppRoutes />
+            </BrowserRouter>
+          </DriverGpsProvider>
         </AuthProvider>
       </ToastProvider>
     </QueryClientProvider>

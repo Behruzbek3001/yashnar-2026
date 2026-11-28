@@ -1,3 +1,4 @@
+import { sendPushToUsers } from './push.ts';
 import fs from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
@@ -244,6 +245,11 @@ export async function createNotificationTx(
     channel: 'in_app',
     status: 'delivered',
   });
+
+  // Phone push after the surrounding transaction has had time to commit.
+  setTimeout(() => {
+    void sendPushToUsers([params.userId], { title: params.title, body: params.body });
+  }, 1000);
 
   return notif;
 }
