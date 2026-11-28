@@ -29,7 +29,10 @@ import {
   emitAfterCommit,
   getRewardRule,
   purgeAbandonedLocations,
+  PRIVATE_REPORTS_DIR,
 } from '../services.ts';
+import path from 'node:path';
+import fs from 'node:fs';
 
 export const driverRouter = Router();
 
@@ -485,6 +488,70 @@ driverRouter.post('/driver/location', async (req: AuthRequest, res) => {
   } catch (err) {
     console.error('Driver location error:', err);
     return res.status(500).json({ error: 'Joylashuvni saqlashda xatolik.' });
+  }
+});
+
+const ACTIVE_REPORT_STATUSES = ['submitted', 'reviewing', 'assigned', 'en_route', 'arrived'];
+
+/** Reports (murojaatlar) from the MFYs assigned to this driver. ?scope=active (default) | all */
+driverRouter.get('/driver/reports', async (req: AuthRequest, res) => {
+  try {
+    const mfyIds = await getAssignedMfyIds(req.currentUser!.driverId!);
+    if (!mfyIds.length) return res.json({ reports: [] });
+    const all = req.query.scope === 'all';
+    const rows = await db
+      .select({
+        id: wasteReports.id,
+        publicCode: wasteReports.publicCode,
+        category: wasteReports.category,
+        estimatedRange: wasteReports.estimatedRange,
+        estimatedLiters: wasteReports.estimatedLiters,
+        actualLiters: wasteReports.actualLiters,
+        description: wasteReports.description,
+        address: wasteReports.address,
+        latitude: wasteReports.latitude,
+        longitude: wasteReports.longitude,
+        status: wasteReports.status,
+        hasPhoto: sql<boolean>`${wasteReports.photoStorageKey} IS NOT NULL`,
+        createdAt: wasteReports.createdAt,
+        mfyName: mfys.name,
+        citizenName: users.fullName,
+        citizenPhone: users.phone,
+      })
+      .from(wasteReports)
+      .innerJoin(mfys, eq(wasteReports.mfyId, mfys.id))
+      .innerJoin(users, eq(wasteReports.citizenId, users.id))
+      .where(
+        all
+          ? inArray(wasteReports.mfyId, mfyIds)
+          : and(inArray(wasteReports.mfyId, mfyIds), inArray(wasteReports.status, ACTIVE_REPORT_STATUSES))
+      )
+      .orderBy(desc(wasteReports.createdAt))
+      .limit(200);
+    return res.json({ reports: rows.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })) });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Murojaatlarni yuklashda xatolik.' });
+  }
+});
+
+/** Report photo, only for reports in the driver's assigned MFYs. */
+driverRouter.get('/driver/reports/:id/photo', async (req: AuthRequest, res) => {
+  try {
+    const mfyIds = await getAssignedMfyIds(req.currentUser!.driverId!);
+    const [r] = await db
+      .select({ key: wasteReports.photoStorageKey, mfyId: wasteReports.mfyId })
+      .from(wasteReports)
+      .where(eq(wasteReports.id, Number(req.params.id)))
+      .limit(1);
+    if (!r || !r.key || !mfyIds.includes(r.mfyId)) return res.status(404).json({ error: 'Rasm topilmadi.' });
+    const file = path.join(PRIVATE_REPORTS_DIR, path.basename(r.key));
+    if (!fs.existsSync(file)) return res.status(404).json({ error: 'Rasm topilmadi.' });
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    return res.sendFile(file);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Rasmni yuklashda xatolik.' });
   }
 });
 

@@ -68,6 +68,7 @@ const DRIVER_NAV: NavItem[] = [
   { to: '/driver', label: 'Bosh panel', shortLabel: 'Panel', icon: LayoutDashboard, mobilePrimary: true },
   { to: '/driver/mfys', label: 'MFYlar', icon: Building2, mobilePrimary: true },
   { to: '/driver/map', label: 'Xarita va GPS', shortLabel: 'Xarita', icon: Map, mobilePrimary: true },
+  { to: '/driver/reports', label: 'Murojaatlar', icon: ClipboardList },
   { to: '/driver/scan', label: 'QR skaner', shortLabel: 'Skaner', icon: ScanLine, mobilePrimary: true },
   { to: '/driver/trips', label: 'Reyslar', icon: Navigation },
   { to: '/driver/history', label: 'Tarix', icon: History },

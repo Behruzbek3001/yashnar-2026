@@ -22,6 +22,7 @@ import { WalletPage } from './pages/citizen/WalletPage';
 
 import { DriverDashboardPage } from './pages/driver/DriverDashboardPage';
 import { DriverMfysPage } from './pages/driver/DriverMfysPage';
+import { DriverReportsPage } from './pages/driver/DriverReportsPage';
 import { DriverMapPage } from './pages/driver/DriverMapPage';
 import { DriverScanPage } from './pages/driver/DriverScanPage';
 import { DriverHistoryPage, DriverTripsPage } from './pages/driver/DriverTripsAndHistoryPages';
@@ -127,6 +128,7 @@ const AppRoutes: React.FC = () => (
     {/* Driver Routes */}
     <Route path="/driver" element={<RoleShellRoute allowedRole="driver"><DriverDashboardPage /></RoleShellRoute>} />
     <Route path="/driver/mfys" element={<RoleShellRoute allowedRole="driver"><DriverMfysPage /></RoleShellRoute>} />
+    <Route path="/driver/reports" element={<RoleShellRoute allowedRole="driver"><DriverReportsPage /></RoleShellRoute>} />
     <Route path="/driver/map" element={<RoleShellRoute allowedRole="driver"><DriverMapPage /></RoleShellRoute>} />
     <Route path="/driver/trips" element={<RoleShellRoute allowedRole="driver"><DriverTripsPage /></RoleShellRoute>} />
     <Route path="/driver/scan" element={<RoleShellRoute allowedRole="driver"><DriverScanPage /></RoleShellRoute>} />
